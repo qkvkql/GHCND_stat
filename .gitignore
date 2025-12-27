@@ -1,0 +1,10 @@
+instance/visitors.db
+# Ignore Python cache and other common files
+__pycache__/
+*.py[cod]
+*$py.class
+.env
+.venv
+env/
+venv/
+ENV/

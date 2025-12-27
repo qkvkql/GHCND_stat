@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ t('details_page.title', station_name=station_name) }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        .details-container {
+            max-width: 900px;
+            margin: 30px auto;
+            background: white;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 10px;
+            flex-wrap: wrap;
+            /* responsive wrap */
+            gap: 10px;
+        }
+
+        /* Mobile Adjustments */
+        @media (max-width: 600px) {
+            .details-container {
+                padding: 15px;
+                margin: 10px;
+                width: auto;
+            }
+
+            .header-row {
+                flex-direction: column-reverse;
+                align-items: flex-start;
+            }
+
+            #languageSelect {
+                margin-bottom: 10px;
+                align-self: flex-end;
+            }
+
+            .data-table th,
+            .data-table td {
+                padding: 8px 5px;
+                font-size: 0.9rem;
+            }
+
+            h1 {
+                font-size: 1.3rem;
+            }
+
+            h2 {
+                font-size: 1rem;
+            }
+        }
+
+        .back-btn {
+            background-color: #6c757d;
+            color: white;
+            padding: 8px 15px;
+            text-decoration: none;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+
+        .back-btn:hover {
+            background-color: #5a6268;
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            margin: 0;
+            color: #333;
+        }
+
+        h2 {
+            font-size: 1.1rem;
+            margin: 5px 0 0 0;
+            color: #666;
+            font-weight: normal;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: flex-end;
+            margin-bottom: 10px;
+        }
+
+        .copy-btn {
+            background-color: #17a2b8;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .copy-btn:hover {
+            background-color: #138496;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="details-container">
+        <div class="header-row">
+            <div>
+                <h1>{{ station_name }}</h1>
+                <h2>{{ t('details_page.info_' + query_type, value=value) if query_type else '' }}</h2>
+                <h3 style="margin-top: 5px; color: #555; font-size: 1rem;">
+                    {% if expected_total %}
+                    {{ t('details_page.expected_total', count=records|length, expected=expected_total) }}
+                    {% else %}
+                    {{ t('details_page.total_records', count=records|length) }}
+                    {% endif %}
+                </h3>
+            </div>
+            <div>
+                <select id="languageSelect" onchange="window.location.href='/set_language/' + this.value"
+                    style="padding: 5px; border-radius: 4px; border: 1px solid #ccc;">
+                    <option value="en" {% if lang()=='en' %}selected{% endif %}>English</option>
+                    <option value="zh" {% if lang()=='zh' %}selected{% endif %}>中文</option>
+                </select>
+            </div>
+        </div>
+
+        {% if error_msg %}
+        <div
+            style="background-color: #f8d7da; color: #721c24; padding: 15px; border-radius: 4px; border: 1px solid #f5c6cb; margin-bottom: 20px; font-weight: bold; text-align: center;">
+            {{ error_msg }}
+        </div>
+        {% endif %}
+
+        <div class="controls">
+            <button class="copy-btn" onclick="copyTable()">{{ t('details_page.copy_tsv') }}</button>
+        </div>
+
+        {% if streaks and records|length > 10 %}
+        <div style="display: flex; gap: 20px; margin-bottom: 20px; flex-wrap: wrap;">
+            {% for metric, list in streaks.items() %}
+            <div
+                style="flex: 1; min-width: 250px; background: #f9f9f9; padding: 10px; border-radius: 5px; border: 1px solid #eee;">
+                <h4
+                    style="margin: 0 0 10px 0; font-size: 1rem; color: #333; border-bottom: 2px solid #ddd; padding-bottom: 5px;">
+                    {{ t('metrics.' + metric|lower) }} {{ ' <= ' if thresholds[metric]['dir'] == 'lte' else ' >= ' }} {{ thresholds[metric]['val'] }} {{ t('details_page.top_consecutive') }}
+                </h4>
+                {% if list %}
+                <ol style="margin: 0; padding-left: 20px; font-size: 0.9rem;">
+                    {% for item in list %}
+                    <li style="margin-bottom: 4px;">{{ item }}</li>
+                    {% endfor %}
+                </ol>
+                {% else %}
+                <p style="margin: 0; font-size: 0.9rem; color: #888;">{{ t('details_page.no_streaks') }}</p>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <div class="table-responsive">
+            <table class="data-table" id="detailsTable">
+                <thead>
+                    <tr>
+                        <th onclick="sortTable('date')">{{ t('details_page.header_date') }} &#8645;</th>
+                        <th onclick="sortTable('tmin')">{{ t('details_page.header_tmin') }} &#8645;</th>
+                        <th onclick="sortTable('tavg')">{{ t('details_page.header_tavg') }} &#8645;</th>
+                        <th onclick="sortTable('tmax')">{{ t('details_page.header_tmax') }} &#8645;</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if records %}
+                    {% for row in records %}
+                    <tr>
+                        <td>{{ row.DATE }}</td>
+                        <td{{ ' class="copy-cell"' |safe if row.TMIN is not none and row.TMIN==row.TMIN and row.TMIN
+                            !='-' else '' }}>{{ row.TMIN if row.TMIN is not none and row.TMIN == row.TMIN else '-' }}
+                            </td>
+                            <td{{ ' class="copy-cell"' |safe if row.TAVG is not none and row.TAVG==row.TAVG and row.TAVG
+                                !='-' else '' }}>{{ row.TAVG if row.TAVG is not none and row.TAVG == row.TAVG else '-'
+                                }}</td>
+                                <td{{ ' class="copy-cell"' |safe if row.TMAX is not none and row.TMAX==row.TMAX and
+                                    row.TMAX !='-' else '' }}>{{ row.TMAX if row.TMAX is not none and row.TMAX ==
+                                    row.TMAX else '-' }}</td>
+                    </tr>
+                    {% endfor %}
+                    {% else %}
+                    <tr>
+                        <td colspan="4" style="text-align:center;">{{ t('details_page.no_records') }}</td>
+                    </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div id="copyToast">{{ t('messages.copied_to_clipboard') }}</div>
+
+    <script>
+        let sortCol = 'date';
+        let sortDir = 'asc';
+
+        function sortTable(column) {
+            const table = document.getElementById('detailsTable');
+            const tbody = table.querySelector('tbody');
+            const rows = Array.from(tbody.querySelectorAll('tr'));
+
+            if (sortCol === column) { sortDir = (sortDir === 'asc') ? 'desc' : 'asc'; }
+            else { sortCol = column; sortDir = 'asc'; }
+
+            const getVal = (row, idx) => {
+                const txt = row.children[idx].innerText.trim();
+                if (txt === '-') return -9999;
+                return isNaN(txt) ? txt : parseFloat(txt);
+            };
+
+            const colIdxMap = { 'date': 0, 'tmin': 1, 'tavg': 2, 'tmax': 3 };
+            const idx = colIdxMap[column];
+
+            rows.sort((a, b) => {
+                const valA = getVal(a, idx);
+                const valB = getVal(b, idx);
+
+                // Treats -9999 as our "empty" marker from getVal above. 
+                // Wait, getVal logic was: if (txt === '-') return -9999;
+                // This forces it to be a small number. We need to Change getVal too or handle -9999 here.
+
+                // Let's modify getVal return to be 'raw' if we want clean logic, or handle -9999 as the "empty" sentinal.
+                // But -9999 is a valid temperature sometimes? Unlikely for Earth, but possible in data errors.
+                // Better to return null for empty.
+
+                let isEmptyA = (valA === -9999);
+                let isEmptyB = (valB === -9999);
+
+                if (isEmptyA && isEmptyB) return 0;
+                if (isEmptyA) return 1;
+                if (isEmptyB) return -1;
+
+                if (valA < valB) return sortDir === 'asc' ? -1 : 1;
+                if (valA > valB) return sortDir === 'asc' ? 1 : -1;
+                return 0;
+            });
+
+            tbody.innerHTML = '';
+            rows.forEach(r => tbody.appendChild(r));
+        }
+
+        function showToast(message) {
+            const toast = document.getElementById('copyToast');
+            toast.textContent = message;
+            toast.className = 'show';
+            setTimeout(() => toast.className = '', 3000);
+        }
+
+        function copyTable() {
+            const table = document.getElementById('detailsTable');
+            let tsv = [];
+
+            // Header
+            const headers = Array.from(table.querySelectorAll('thead th')).map(th => th.innerText.replace(' \u21c5', '').trim());
+            tsv.push(headers.join('\t'));
+
+            // Rows
+            const rows = table.querySelectorAll('tbody tr');
+            rows.forEach(tr => {
+                const cells = Array.from(tr.querySelectorAll('td')).map(td => td.innerText.trim());
+                if (cells.length > 0) tsv.push(cells.join('\t'));
+            });
+
+            navigator.clipboard.writeText(tsv.join('\n')).then(() => {
+                showToast("{{ t('messages.copied_to_clipboard') }}");
+            });
+        }
+
+        // Global Cell Copy (Target .copy-cell)
+        document.addEventListener('click', function (e) {
+            const targetCell = e.target.closest('.copy-cell');
+            if (targetCell && !e.target.closest('button') && !e.target.closest('a')) {
+                if (window.getSelection().toString().length > 0) return;
+                const text = targetCell.innerText.trim();
+                if (text && text !== '-') {
+                    navigator.clipboard.writeText(text).then(() => { showToast(`Copied: ${text}`); })
+                        .catch(err => { console.error('Failed to copy', err); });
+                }
+            }
+        });
+    </script>
+</body>
+
+</html>
