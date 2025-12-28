@@ -105,6 +105,78 @@
         .copy-btn:hover {
             background-color: #138496;
         }
+
+        .period-highlight {
+            color: #d32f2f;
+            font-weight: 900;
+            font-size: 1.1em;
+        }
+
+        .station-meta {
+            margin-top: 5px;
+            font-size: 0.95rem;
+            color: #555;
+        }
+
+        .meta-item {
+            display: inline-block;
+            margin-right: 15px;
+            padding: 2px 6px;
+            background: #f1f1f1;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .meta-item:hover {
+            background: #e0e0e0;
+            color: #000;
+        }
+
+        .toast {
+            visibility: hidden;
+            min-width: 250px;
+            background-color: #333;
+            color: #fff;
+            text-align: center;
+            border-radius: 4px;
+            padding: 10px;
+            position: fixed;
+            z-index: 1000;
+            left: 50%;
+            bottom: 30px;
+            transform: translateX(-50%);
+            font-size: 16px;
+        }
+
+        .toast.show {
+            visibility: visible;
+            animation: fadein 0.5s, fadeout 0.5s 2.5s;
+        }
+
+        @keyframes fadein {
+            from {
+                bottom: 0;
+                opacity: 0;
+            }
+
+            to {
+                bottom: 30px;
+                opacity: 1;
+            }
+        }
+
+        @keyframes fadeout {
+            from {
+                bottom: 30px;
+                opacity: 1;
+            }
+
+            to {
+                bottom: 0;
+                opacity: 0;
+            }
+        }
     </style>
 </head>
 
@@ -113,7 +185,23 @@
         <div class="header-row">
             <div>
                 <h1>{{ station_name }}</h1>
+
+                {% if station_info and station_info.lat != '-' %}
+                <div class="station-meta">
+                    <span class="meta-item copyable" title="Click to copy Coordinates">{{ station_info.lat }}&#9;{{
+                        station_info.lon }}</span>
+                    <span class="meta-item copyable" title="Click to copy Elevation">{{ station_info.elev }}m</span>
+                </div>
+                {% endif %}
+
+                {% if query_type == 'period' %}
+                <h2>
+                    {{ t('details_page.info_period', value=('<span class="period-highlight">' ~ value ~ '</span>')) |
+                    safe }}
+                </h2>
+                {% else %}
                 <h2>{{ t('details_page.info_' + query_type, value=value) if query_type else '' }}</h2>
+                {% endif %}
                 <h3 style="margin-top: 5px; color: #555; font-size: 1rem;">
                     {% if expected_total %}
                     {{ t('details_page.expected_total', count=records|length, expected=expected_total) }}
@@ -149,17 +237,18 @@
                 style="flex: 1; min-width: 250px; background: #f9f9f9; padding: 10px; border-radius: 5px; border: 1px solid #eee;">
                 <h4
                     style="margin: 0 0 10px 0; font-size: 1rem; color: #333; border-bottom: 2px solid #ddd; padding-bottom: 5px;">
-                    {{ t('metrics.' + metric|lower) }} {{ ' <= ' if thresholds[metric]['dir'] == 'lte' else ' >= ' }} {{ thresholds[metric]['val'] }} {{ t('details_page.top_consecutive') }}
-                </h4>
-                {% if list %}
-                <ol style="margin: 0; padding-left: 20px; font-size: 0.9rem;">
-                    {% for item in list %}
-                    <li style="margin-bottom: 4px;">{{ item }}</li>
-                    {% endfor %}
-                </ol>
-                {% else %}
-                <p style="margin: 0; font-size: 0.9rem; color: #888;">{{ t('details_page.no_streaks') }}</p>
-                {% endif %}
+                    {% set symbol_map = {'lte': ' <= ', 'gte': ' >= ' } %} {{ t('metrics.' + metric|lower) }} {{
+                        symbol_map[thresholds[metric]['dir']|trim] }} {{ thresholds[metric]['val'] }} {{
+                        t('details_page.top_consecutive') }} </h4>
+                        {% if list %}
+                        <ol style="margin: 0; padding-left: 20px; font-size: 0.9rem;">
+                            {% for item in list %}
+                            <li style="margin-bottom: 4px;">{{ item }}</li>
+                            {% endfor %}
+                        </ol>
+                        {% else %}
+                        <p style="margin: 0; font-size: 0.9rem; color: #888;">{{ t('details_page.no_streaks') }}</p>
+                        {% endif %}
             </div>
             {% endfor %}
         </div>
@@ -278,6 +367,17 @@
                 showToast("{{ t('messages.copied_to_clipboard') }}");
             });
         }
+
+        // Global Copy Listener for .copyable items (Lat/Lon/Elev)
+        document.addEventListener('click', function (e) {
+            const target = e.target.closest('.copyable');
+            if (target) {
+                const text = target.innerText.trim();
+                navigator.clipboard.writeText(text).then(() => {
+                    showToast("{{ t('messages.copied_to_clipboard') }}");
+                }).catch(err => { console.error('Failed to copy', err); });
+            }
+        });
 
         // Global Cell Copy (Target .copy-cell)
         document.addEventListener('click', function (e) {

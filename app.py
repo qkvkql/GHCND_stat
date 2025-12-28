@@ -39,7 +39,7 @@ if os.path.exists(TRANSLATIONS_FILE):
 def get_translation(key, lang=None, **kwargs):
     """Get translation for a key, with optional format parameters"""
     if lang is None:
-        lang = session.get('language', 'en')
+        lang = session.get('language', 'zh')
     keys = key.split('.')
     try:
         value = TRANSLATIONS.get(lang, TRANSLATIONS.get('en', {}))
@@ -62,7 +62,7 @@ def get_translation(key, lang=None, **kwargs):
 
 def get_current_language():
     """Get current language from session, default to 'en'"""
-    return session.get('language', 'en')
+    return session.get('language', 'zh')
 
 @app.context_processor
 def inject_csrf_token():
@@ -497,7 +497,9 @@ def delete_invitation(id):
 
 @app.route('/')
 def home():
-    return render_template('index.html')
+    ghcnd_count = len(GHCND_DF) if GHCND_DF is not None else 0
+    gsod_count = len(GSOD_DF) if GSOD_DF is not None else 0
+    return render_template('index.html', ghcnd_count=ghcnd_count, gsod_count=gsod_count)
 
 @app.route('/set_language/<lang>')
 def set_language(lang):
@@ -554,7 +556,7 @@ def get_data():
         sort_by = req.get('sort_by', 'DATE')
         sort_dir = req.get('sort_dir', 'desc')
         selected_elements = req.get('selected_elements', ['TMIN', 'TAVG', 'TMAX'])
-        record_limit = int(req.get('limit', 15))
+        record_limit = int(req.get('limit', 5))
         custom_avg_tmin = req.get('custom_avg_tmin')
         custom_avg_tavg = req.get('custom_avg_tavg')
         custom_avg_tmax = req.get('custom_avg_tmax')
@@ -741,7 +743,7 @@ def get_data():
             wban_limit = req.get('wban_limit', 'no')
             multi_sort_by = req.get('multi_sort_by', 'distance')
             multi_sort_dir = req.get('multi_sort_dir', 'asc')
-            multi_limit = int(req.get('multi_limit', 15))
+            multi_limit = int(req.get('multi_limit', 5))
 
             st_df = GHCND_DF if source == 'GHCND' else GSOD_DF
             if center_mode == 'coords':
@@ -1078,6 +1080,23 @@ def date_details():
             if not row.empty: station_name = f"{station_id} - {row.iloc[0]['NAME']}"
     except: pass
     
+    # NEW: Fetch Station Info (Lat, Lon, Elev)
+    station_info = {'lat': '-', 'lon': '-', 'elev': '-'}
+    try:
+        if source == 'GHCND':
+            row = GHCND_DF[GHCND_DF['ID'] == station_id]
+            if not row.empty:
+                station_info['lat'] = row.iloc[0]['LAT']
+                station_info['lon'] = row.iloc[0]['LON']
+                station_info['elev'] = row.iloc[0]['ELEV']
+        else:
+            row = GSOD_DF[GSOD_DF['ID'] == station_id]
+            if not row.empty:
+                station_info['lat'] = row.iloc[0]['LAT']
+                station_info['lon'] = row.iloc[0]['LON']
+                station_info['elev'] = row.iloc[0]['ELEV']
+    except: pass
+    
     # Thresholds
     thresholds = {
         'TMIN': {'val': request.args.get('tmin_val'), 'dir': request.args.get('tmin_dir')},
@@ -1214,7 +1233,127 @@ def date_details():
                            value=value,
                            streaks=streaks_data,
                            thresholds=thresholds,
-                           expected_total=expected_total)
+                           expected_total=expected_total,
+                           station_info=station_info)
+
+@app.route('/extreme_temps')
+@auth_or_visitor_required
+def extreme_temps():
+    station_id = request.args.get('station_id')
+    source = request.args.get('source', 'GHCND')
+    season = request.args.get('season', 'winter') # 'winter' or 'summer'
+    
+    # Station Name
+    station_name = station_id
+    try:
+        if source == 'GHCND':
+            row = GHCND_DF[GHCND_DF['ID'] == station_id]
+            if not row.empty: station_name = f"{station_id} - {row.iloc[0]['NAME']}"
+        else:
+            row = GSOD_DF[GSOD_DF['ID'] == station_id]
+            if not row.empty: station_name = f"{station_id} - {row.iloc[0]['NAME']}"
+    except: pass
+
+    # Fetch Station Info (Lat, Lon, Elev) - Same logic as before to pass to extreme_temps
+    station_info = {'lat': '-', 'lon': '-', 'elev': '-'}
+    try:
+        if source == 'GHCND':
+            row = GHCND_DF[GHCND_DF['ID'] == station_id]
+            if not row.empty:
+                station_info['lat'] = row.iloc[0]['LAT']
+                station_info['lon'] = row.iloc[0]['LON']
+                station_info['elev'] = row.iloc[0]['ELEV']
+        else:
+            row = GSOD_DF[GSOD_DF['ID'] == station_id]
+            if not row.empty:
+                station_info['lat'] = row.iloc[0]['LAT']
+                station_info['lon'] = row.iloc[0]['LON']
+                station_info['elev'] = row.iloc[0]['ELEV']
+    except: pass
+
+    # Fetch ALL data (start_date=None, end_date=None)
+    df = fetch_and_clean_data(source, station_id, None, None)
+    
+    results = []
+    if not df.empty:
+        df = df[df['ELEMENT'].isin(['TMIN', 'TMAX'])].copy()
+        
+        # FULL YEAR Logic - Do not filter by month
+        # df = df[df['DATE'].dt.month.isin([12, 1, 2, 29])] # REMOVED
+            
+        # Add Month-Day column
+        df['MD'] = df['DATE'].dt.strftime('%m-%d')
+        
+        # Generate all MDs for the FULL YEAR
+        all_mds = []
+        # Days per month (Leap year standard)
+        # 1:31, 2:29, 3:31, 4:30, 5:31, 6:30, 7:31, 8:31, 9:30, 10:31, 11:30, 12:31
+        days_in_month = {1:31, 2:29, 3:31, 4:30, 5:31, 6:30, 7:31, 8:31, 9:30, 10:31, 11:30, 12:31}
+        for m in range(1, 13):
+            for d in range(1, days_in_month[m] + 1):
+                all_mds.append(f"{m:02d}-{d:02d}")
+            
+        grouped = df.groupby('MD')
+        
+        for md in all_mds:
+            # Prepare empty entry even if no data exists (to ensure full calendar 366 rows)
+            # User said "It should have 365 or 366 rows in good situation."
+            # If no data, we should probably output the date with '-'
+            
+            entry = {'md': md}
+            has_data = False
+            
+            sub = pd.DataFrame()
+            if md in grouped.groups:
+                sub = grouped.get_group(md)
+            
+            # Logic: Calculate ALL 4 Extremes
+            sub_tmin = sub[sub['ELEMENT'] == 'TMIN'] if not sub.empty else pd.DataFrame()
+            sub_tmax = sub[sub['ELEMENT'] == 'TMAX'] if not sub.empty else pd.DataFrame()
+            
+            # 1. Min TMIN (Record Low)
+            if not sub_tmin.empty:
+                val = sub_tmin['DATA_VALUE'].min()
+                dates = sub_tmin[sub_tmin['DATA_VALUE'] == val]['DATE'].dt.year.tolist()
+                entry['min_tmin_val'] = val
+                entry['min_tmin_years'] = dates
+            else:
+                entry['min_tmin_val'] = '-'
+                entry['min_tmin_years'] = []
+
+            # 2. Min TMAX (Coldest Day)
+            if not sub_tmax.empty:
+                val = sub_tmax['DATA_VALUE'].min()
+                dates = sub_tmax[sub_tmax['DATA_VALUE'] == val]['DATE'].dt.year.tolist()
+                entry['min_tmax_val'] = val
+                entry['min_tmax_years'] = dates
+            else:
+                entry['min_tmax_val'] = '-'
+                entry['min_tmax_years'] = []
+
+            # 3. Max TMIN (Warmest Night)
+            if not sub_tmin.empty:
+                val = sub_tmin['DATA_VALUE'].max()
+                dates = sub_tmin[sub_tmin['DATA_VALUE'] == val]['DATE'].dt.year.tolist()
+                entry['max_tmin_val'] = val
+                entry['max_tmin_years'] = dates
+            else:
+                entry['max_tmin_val'] = '-'
+                entry['max_tmin_years'] = []
+
+            # 4. Max TMAX (Hottest Day)
+            if not sub_tmax.empty:
+                val = sub_tmax['DATA_VALUE'].max()
+                dates = sub_tmax[sub_tmax['DATA_VALUE'] == val]['DATE'].dt.year.tolist()
+                entry['max_tmax_val'] = val
+                entry['max_tmax_years'] = dates
+            else:
+                entry['max_tmax_val'] = '-'
+                entry['max_tmax_years'] = []
+            
+            results.append(entry)
+
+    return render_template('extreme_temps.html', results=results, station_name=station_name, season=season, station_info=station_info)
 
 if __name__ == '__main__':
     app.run(debug=True, port=1002)

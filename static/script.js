@@ -26,6 +26,20 @@ function toggleSection(sectionId) {
     }
 }
 
+function toggleMenu() {
+    const popup = document.getElementById('popupMenu');
+    const overlay = document.getElementById('menuOverlay');
+    if (popup) popup.classList.toggle('hidden');
+    if (overlay) overlay.classList.toggle('hidden');
+}
+
+function closeMenu() {
+    const popup = document.getElementById('popupMenu');
+    const overlay = document.getElementById('menuOverlay');
+    if (popup) popup.classList.add('hidden');
+    if (overlay) overlay.classList.add('hidden');
+}
+
 function getElementValueSafe(id, defaultVal) {
     const el = document.getElementById(id);
     return el ? el.value : defaultVal;
@@ -131,13 +145,13 @@ function updateDayDropdown() {
     const monthFilter = document.getElementById('monthFilter');
     const dayFilter = document.getElementById('dayFilter');
     if (!monthFilter || !dayFilter) return;
-    
+
     const selectedMonth = monthFilter.value;
-    
+
     // Show day dropdown only for single month selections (1-12)
     if (selectedMonth && selectedMonth !== '0' && selectedMonth !== 'winter_3' && selectedMonth !== 'summer_3') {
         dayFilter.style.display = '';
-        
+
         // Get max days for the selected month
         const monthNum = parseInt(selectedMonth);
         let maxDays = 31;
@@ -146,7 +160,7 @@ function updateDayDropdown() {
         } else if ([4, 6, 9, 11].includes(monthNum)) {
             maxDays = 30; // April, June, September, November
         }
-        
+
         // Populate day options - preserve the "All Days" option text from template
         const allDaysOption = dayFilter.querySelector('option[value="0"]');
         const allDaysText = allDaysOption ? allDaysOption.textContent : 'All Days';
@@ -157,7 +171,7 @@ function updateDayDropdown() {
             option.textContent = day;
             dayFilter.appendChild(option);
         }
-        
+
         // Reset to "All Days" when month changes
         dayFilter.value = '0';
     } else {
@@ -258,15 +272,88 @@ function showToast(message) {
 function updateRecordsList() {
     document.getElementById('sortingLoading').classList.remove('hidden');
     const limitVal = document.getElementById('recordLimitSelect').value;
-    document.getElementById('limitLabel').textContent = limitVal;
+    const limitLabel = document.getElementById('limitLabel');
+    if (limitLabel) limitLabel.textContent = limitVal;
     fetchData();
+}
+
+function copyRecordsTable() {
+    const table = document.getElementById('recordsTable');
+    if (!table) return;
+    let tsv = [];
+    // Headers: remove arrow symbols if present
+    const headers = Array.from(table.querySelectorAll('thead th')).map(th => th.innerText.replace(' \u21c5', '').trim());
+    tsv.push(headers.join('\t'));
+    const rows = table.querySelectorAll('tbody tr');
+    rows.forEach(tr => {
+        const cells = Array.from(tr.querySelectorAll('td')).map(td => td.innerText.trim());
+        tsv.push(cells.join('\t'));
+    });
+    const textToCopy = tsv.join('\n');
+    navigator.clipboard.writeText(textToCopy).then(() => { showToast('Records table copied to clipboard!'); });
+}
+
+function copyGlobalStatsTable() {
+    // We need to add ID 'globalStatsTable' to the table in index.html first! 
+    // Wait, I did that in previous step replacement.
+    const table = document.getElementById('globalStatsTable');
+    if (!table) return;
+    let tsv = [];
+    // The structure often has th in tbody for row headers in global stats? No, it has thead.
+    // Let's check logic: rows 398-403 have td headers? 
+    // "<td><strong>...</strong></td>" is used as label.
+    // Let's just grab all rows.
+
+    // Header
+    const headers = Array.from(table.querySelectorAll('thead th')).map(th => th.innerText.trim());
+    if (headers.length > 0) tsv.push(headers.join('\t'));
+
+    const rows = table.querySelectorAll('tbody tr');
+    rows.forEach(tr => {
+        const cells = Array.from(tr.querySelectorAll('td')).map(td => td.innerText.trim());
+        tsv.push(cells.join('\t'));
+    });
+    const text = tsv.join('\n');
+    navigator.clipboard.writeText(text).then(() => { showToast('Global Stats copied!'); });
+}
+
+function copyPeriodAvgTable() {
+    const table = document.getElementById('periodAvgTable');
+    if (!table) return;
+    let tsv = [];
+    // Complex headers in Period Avg?
+    // Just grab text content of rows including headers?
+    // The table might have multiple header rows?
+    // Let's just grab all TRs from thead and tbody.
+
+    const allRows = table.querySelectorAll('tr');
+    allRows.forEach(tr => {
+        const cells = Array.from(tr.querySelectorAll('th, td')).map(el => el.innerText.replace(/\n/g, ' ').trim());
+        tsv.push(cells.join('\t'));
+    });
+    navigator.clipboard.writeText(tsv.join('\n')).then(() => { showToast('Period Averages copied!'); });
+}
+
+function copyPeriodDetailsTable() {
+    const table = document.getElementById('periodStatsTable'); // ID added in prev step
+    if (!table) return;
+    let tsv = [];
+    const keywords = ['Period', 'Total Records', 'Expected', 'Min', 'Avg', 'Max']; // Just raw text dump is usually best for "Copy Table" unless structured.
+    // Simple TSV dump of all visible rows
+    const allRows = table.querySelectorAll('tr');
+    allRows.forEach(tr => {
+        const cells = Array.from(tr.querySelectorAll('th, td')).map(el => el.innerText.replace(/\n/g, ' ').trim());
+        tsv.push(cells.join('\t'));
+    });
+    navigator.clipboard.writeText(tsv.join('\n')).then(() => { showToast('Period Details copied!'); });
 }
 
 function updateMultiStations() {
     const loader = document.getElementById('multiStationLoading');
     if (loader) loader.classList.remove('hidden');
     const limitVal = document.getElementById('multiLimitSelect').value;
-    document.getElementById('multiLimitLabel').textContent = limitVal;
+    const limitLabel = document.getElementById('multiLimitLabel');
+    if (limitLabel) limitLabel.textContent = limitVal;
     fetchData();
 }
 
@@ -384,7 +471,7 @@ async function calcMultiStats() {
     const seasonMode = document.querySelector('input[name="season"]:checked').value;
     const hemisphere = document.querySelector('input[name="hemisphere"]:checked').value;
     const periodMode = getPeriodModeFromSeason(seasonMode, hemisphere);
-    
+
     const payload = {
         station_ids: currentMultiStations.map(s => s.id),
         source: document.getElementById('dataSource').value,
