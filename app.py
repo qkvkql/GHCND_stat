@@ -39,10 +39,10 @@ if os.path.exists(TRANSLATIONS_FILE):
 def get_translation(key, lang=None, **kwargs):
     """Get translation for a key, with optional format parameters"""
     if lang is None:
-        lang = session.get('language', 'en')
+        lang = session.get('language', 'zh')
     keys = key.split('.')
     try:
-        value = TRANSLATIONS.get(lang, TRANSLATIONS.get('en', {}))
+        value = TRANSLATIONS.get(lang, TRANSLATIONS.get('zh', {}))
         for k in keys:
             value = value[k]
         if kwargs:
@@ -51,7 +51,7 @@ def get_translation(key, lang=None, **kwargs):
     except (KeyError, TypeError, AttributeError):
         # Fallback to English, then to key itself
         try:
-            value = TRANSLATIONS.get('en', {})
+            value = TRANSLATIONS.get('zh', {})
             for k in keys:
                 value = value[k]
             if kwargs:
@@ -61,8 +61,8 @@ def get_translation(key, lang=None, **kwargs):
             return key
 
 def get_current_language():
-    """Get current language from session, default to 'en'"""
-    return session.get('language', 'en')
+    """Get current language from session, default to 'zh'"""
+    return session.get('language', 'zh')
 
 @app.context_processor
 def inject_csrf_token():
