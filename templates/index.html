@@ -37,26 +37,36 @@
 <body>
 
     <div class="nav-bar">
-        <div style="margin-right: auto;">
-            <select id="languageSelect" onchange="window.location.href='/set_language/' + this.value"
-                style="padding: 5px; margin-right: 10px;">
+        <!-- First row: Links on left, User info on right -->
+        <div class="nav-links">
+            {% if current_user.is_authenticated %}
+            {% if current_user.is_admin %}
+            <a href="/invitation">{{ t('nav.manage_invites') }}</a>
+            {% endif %}
+            <a href="/logout">{{ t('nav.logout') }}</a>
+            {% elif session.get('is_visitor_access') %}
+            <a href="/logout">{{ t('nav.exit_visitor_mode') }}</a>
+            {% endif %}
+        </div>
+
+        <div class="nav-user">
+            {% if current_user.is_authenticated %}
+            {{ t('nav.welcome_user', username=current_user.username) }}
+            {% elif session.get('is_visitor_access') %}
+            {% if session.get('visitor_level') == 'advanced' %}{{ t('nav.welcome_advanced_visitor') }}{% else %}{{
+            t('nav.welcome_visitor') }}{% endif %}
+            {% else %}
+            {{ t('nav.welcome') }}!
+            {% endif %}
+        </div>
+
+        <!-- Second row: Language selector on new line -->
+        <div class="nav-language">
+            <select id="languageSelect" onchange="window.location.href='/set_language/' + this.value">
                 <option value="en" {% if lang()=='en' %}selected{% endif %}>English</option>
                 <option value="zh" {% if lang()=='zh' %}selected{% endif %}>中文</option>
             </select>
         </div>
-        {% if current_user.is_authenticated %}
-        <span class="nav-user">{{ t('nav.welcome_user', username=current_user.username) }}</span>
-        {% if current_user.is_admin %}
-        <a href="/invitation">{{ t('nav.manage_invites') }}</a>
-        {% endif %}
-        <a href="/logout">{{ t('nav.logout') }}</a>
-        {% elif session.get('is_visitor_access') %}
-        <span class="nav-user">{% if session.get('visitor_level') == 'advanced' %}{{ t('nav.welcome_advanced_visitor')
-            }}{% else %}{{ t('nav.welcome_visitor') }}{% endif %}</span>
-        <a href="/logout">{{ t('nav.exit_visitor_mode') }}</a>
-        {% else %}
-        <span class="nav-user">{{ t('nav.welcome') }}!</span>
-        {% endif %}
     </div>
 
     <div class="container">
@@ -95,105 +105,149 @@
 
             <div id="stationInfoDisplay" class="station-details"></div>
 
-            <div class="param-row">
-                <label>{{ t('params.date_range') }}</label>
-                <select id="quickDateRange" style="width: auto; max-width: 180px; margin-right: 10px;"
-                    onchange="applyQuickDateRange()">
-                    <option value="">{{ t('params.custom_all') }}</option>
-                    <option value="1991-2020">1991 - 2020</option>
-                    <option value="1961-1990">1961 - 1990</option>
-                </select>
-                <input type="date" id="startDate" value="1800-01-01">
-                <span>{{ t('params.to') }}</span>
-                <input type="date" id="endDate" value="2100-12-31">
-            </div>
-
-            <!-- ... (Month/Hemisphere/Period Dropdowns - Same as before) ... -->
-            <div class="param-row">
-                <label>{{ t('params.month_focus') }}</label>
-                <select id="monthFilter">
-                    <option value="0">{{ t('months.full_year') }}</option>
-                    <option value="winter_3">{{ t('months.winter_3') }}</option>
-                    <option value="summer_3">{{ t('months.summer_3') }}</option>
-                    <option value="1">{{ t('months.january') }}</option>
-                    <option value="2">{{ t('months.february') }}</option>
-                    <option value="3">{{ t('months.march') }}</option>
-                    <option value="4">{{ t('months.april') }}</option>
-                    <option value="5">{{ t('months.may') }}</option>
-                    <option value="6">{{ t('months.june') }}</option>
-                    <option value="7">{{ t('months.july') }}</option>
-                    <option value="8">{{ t('months.august') }}</option>
-                    <option value="9">{{ t('months.september') }}</option>
-                    <option value="10">{{ t('months.october') }}</option>
-                    <option value="11">{{ t('months.november') }}</option>
-                    <option value="12">{{ t('months.december') }}</option>
-                </select>
-            </div>
-            <div class="param-row">
-                <label>{{ t('params.hemisphere') }}</label>
-                <div class="radio-group">
-                    <label style="font-weight: normal; width: auto;"><input type="radio" name="hemisphere" value="north"
-                            checked> {{ t('hemisphere.north') }}</label>
-                    <label style="font-weight: normal; width: auto;"><input type="radio" name="hemisphere"
-                            value="south"> {{ t('hemisphere.south') }}</label>
+            <!-- COLLAPSIBLE SECTION 1: Date Restrict -->
+            <div class="collapsible-wrapper" id="dateRestrictSection">
+                <div class="collapsible-header" onclick="toggleSection('dateRestrictSection')">
+                    <strong>{{ t('params.date_restrict') }}</strong>
+                    <span class="collapsible-icon">▼</span>
                 </div>
-            </div>
-            <div class="param-row">
-                <label>{{ t('params.period_mode') }}</label>
-                <div class="radio-group">
-                    <label style="font-weight: normal; width: auto;"><input type="radio" name="period" value="p1"
-                            checked> {{ t('period.period_1') }}</label>
-                    <label style="font-weight: normal; width: auto;"><input type="radio" name="period" value="p2"> {{
-                        t('period.period_2') }}</label>
+                <div class="collapsible-content">
+                    <div class="collapsible-inner">
+                        <div class="param-row">
+                            <label>{{ t('params.date_range') }}</label>
+                            <select id="quickDateRange" style="width: auto; max-width: 180px; margin-right: 10px;"
+                                onchange="applyQuickDateRange()">
+                                <option value="">{{ t('params.custom_all') }}</option>
+                                <option value="1991-2020">1991 - 2020</option>
+                                <option value="1961-1990">1961 - 1990</option>
+                            </select>
+                            <input type="date" id="startDate" value="1800-01-01">
+                            <span>{{ t('params.to') }}</span>
+                            <input type="date" id="endDate" value="2100-12-31">
+                        </div>
+
+                        <div class="param-row">
+                            <label>{{ t('params.month_focus') }}</label>
+                            <select id="monthFilter">
+                                <option value="0">{{ t('months.full_year') }}</option>
+                                <option value="winter_3">{{ t('months.winter_3') }}</option>
+                                <option value="summer_3">{{ t('months.summer_3') }}</option>
+                                <option value="1">{{ t('months.january') }}</option>
+                                <option value="2">{{ t('months.february') }}</option>
+                                <option value="3">{{ t('months.march') }}</option>
+                                <option value="4">{{ t('months.april') }}</option>
+                                <option value="5">{{ t('months.may') }}</option>
+                                <option value="6">{{ t('months.june') }}</option>
+                                <option value="7">{{ t('months.july') }}</option>
+                                <option value="8">{{ t('months.august') }}</option>
+                                <option value="9">{{ t('months.september') }}</option>
+                                <option value="10">{{ t('months.october') }}</option>
+                                <option value="11">{{ t('months.november') }}</option>
+                                <option value="12">{{ t('months.december') }}</option>
+                            </select>
+                        </div>
+
+                        <div class="param-row">
+                            <label>{{ t('params.hemisphere') }}</label>
+                            <div class="radio-group">
+                                <label style="font-weight: normal; width: auto;"><input type="radio" name="hemisphere"
+                                        value="north" checked> {{ t('hemisphere.north') }}</label>
+                                <label style="font-weight: normal; width: auto;"><input type="radio" name="hemisphere"
+                                        value="south"> {{ t('hemisphere.south') }}</label>
+                            </div>
+                        </div>
+
+                        <div class="param-row">
+                            <label>{{ t('params.period_mode') }}</label>
+                            <div class="radio-group">
+                                <label style="font-weight: normal; width: auto;"><input type="radio" name="period"
+                                        value="p1" checked> {{ t('period.period_1') }}</label>
+                                <label style="font-weight: normal; width: auto;"><input type="radio" name="period"
+                                        value="p2"> {{
+                                    t('period.period_2') }}</label>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
             <div class="divider"></div>
 
-            <!-- THRESHOLDS -->
-            <div class="param-grid">
-                <div class="thresh-box">
-                    <strong>{{ t('thresholds.tmin_threshold') }}</strong>
-                    <select id="tminDir">
-                        <option value="lte">&le;</option>
-                        <option value="gte">&ge;</option>
-                    </select>
-                    <input type="number" id="tminVal" value="-50" placeholder="{{ t('thresholds.value_c') }}">
+            <!-- COLLAPSIBLE SECTION 2: Temperature Threshold -->
+            <div class="collapsible-wrapper" id="temperatureSection">
+                <div class="collapsible-header" onclick="toggleSection('temperatureSection')">
+                    <strong>{{ t('params.temperature_threshold') }}</strong>
+                    <span class="collapsible-icon">▼</span>
                 </div>
-                <div class="thresh-box">
-                    <strong>{{ t('thresholds.tavg_threshold') }}</strong>
-                    <select id="tavgDir">
-                        <option value="lte">&le;</option>
-                        <option value="gte">&ge;</option>
-                    </select>
-                    <input type="number" id="tavgVal" value="-40" placeholder="{{ t('thresholds.value_c') }}">
-                </div>
-                <div class="thresh-box">
-                    <strong>{{ t('thresholds.tmax_threshold') }}</strong>
-                    <select id="tmaxDir">
-                        <option value="lte">&le;</option>
-                        <option value="gte">&ge;</option>
-                    </select>
-                    <input type="number" id="tmaxVal" value="-30" placeholder="{{ t('thresholds.value_c') }}">
+                <div class="collapsible-content">
+                    <div class="collapsible-inner">
+                        <p style="margin: 0 0 10px 0; font-size: 0.9em; color: #666;">{{
+                            t('params.threshold_explanation') }}</p>
+                        <div class="param-grid">
+                            <div class="thresh-box">
+                                <strong>{{ t('thresholds.tmin_threshold') }}</strong>
+                                <select id="tminDir">
+                                    <option value="lte">&le;</option>
+                                    <option value="gte">&ge;</option>
+                                </select>
+                                <input type="number" id="tminVal" value="-50"
+                                    placeholder="{{ t('thresholds.value_c') }}">
+                            </div>
+                            <div class="thresh-box">
+                                <strong>{{ t('thresholds.tavg_threshold') }}</strong>
+                                <select id="tavgDir">
+                                    <option value="lte">&le;</option>
+                                    <option value="gte">&ge;</option>
+                                </select>
+                                <input type="number" id="tavgVal" value="-40"
+                                    placeholder="{{ t('thresholds.value_c') }}">
+                            </div>
+                            <div class="thresh-box">
+                                <strong>{{ t('thresholds.tmax_threshold') }}</strong>
+                                <select id="tmaxDir">
+                                    <option value="lte">&le;</option>
+                                    <option value="gte">&ge;</option>
+                                </select>
+                                <input type="number" id="tmaxVal" value="-30"
+                                    placeholder="{{ t('thresholds.value_c') }}">
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <!-- Custom Average -->
-            <div class="param-grid" style="margin-top: 15px;">
-                <div class="thresh-box">
-                    <strong>{{ t('thresholds.custom_average_base.tmin') }}</strong>
-                    <label style="font-weight:normal; font-size:0.9em;">{{ t('thresholds.for_tmin_explosive') }}</label>
-                    <input type="number" id="customAvgTmin" placeholder="{{ t('thresholds.leave_blank_avg') }}">
+            <!-- COLLAPSIBLE SECTION 3: Explosive Power -->
+            <div class="collapsible-wrapper" id="explosivePowerSection">
+                <div class="collapsible-header" onclick="toggleSection('explosivePowerSection')">
+                    <strong>{{ t('params.explosive_power') }}</strong>
+                    <span class="collapsible-icon">▼</span>
                 </div>
-                <div class="thresh-box">
-                    <strong>{{ t('thresholds.custom_average_base.tavg') }}</strong>
-                    <label style="font-weight:normal; font-size:0.9em;">{{ t('thresholds.for_tavg_explosive') }}</label>
-                    <input type="number" id="customAvgTavg" placeholder="{{ t('thresholds.leave_blank_avg') }}">
-                </div>
-                <div class="thresh-box">
-                    <strong>{{ t('thresholds.custom_average_base.tmax') }}</strong>
-                    <label style="font-weight:normal; font-size:0.9em;">{{ t('thresholds.for_tmax_explosive') }}</label>
-                    <input type="number" id="customAvgTmax" placeholder="{{ t('thresholds.leave_blank_avg') }}">
+                <div class="collapsible-content">
+                    <div class="collapsible-inner">
+                        <div class="param-grid">
+                            <div class="thresh-box">
+                                <strong>{{ t('thresholds.custom_average_base.tmin') }}</strong>
+                                <label style="font-weight:normal; font-size:0.9em;">{{
+                                    t('thresholds.for_tmin_explosive') }}</label>
+                                <input type="number" id="customAvgTmin"
+                                    placeholder="{{ t('thresholds.leave_blank_avg') }}">
+                            </div>
+                            <div class="thresh-box">
+                                <strong>{{ t('thresholds.custom_average_base.tavg') }}</strong>
+                                <label style="font-weight:normal; font-size:0.9em;">{{
+                                    t('thresholds.for_tavg_explosive') }}</label>
+                                <input type="number" id="customAvgTavg"
+                                    placeholder="{{ t('thresholds.leave_blank_avg') }}">
+                            </div>
+                            <div class="thresh-box">
+                                <strong>{{ t('thresholds.custom_average_base.tmax') }}</strong>
+                                <label style="font-weight:normal; font-size:0.9em;">{{
+                                    t('thresholds.for_tmax_explosive') }}</label>
+                                <input type="number" id="customAvgTmax"
+                                    placeholder="{{ t('thresholds.leave_blank_avg') }}">
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -202,73 +256,87 @@
             <!-- MULTI STATION PARAMS (Only for Admin or Advanced) -->
             {% if (current_user.is_authenticated and (current_user.is_admin or current_user.user_level == 'advanced'))
             or (session.get('is_visitor_access') and session.get('visitor_level') == 'advanced') %}
-            <div id="multiParamsArea">
-                <h3 style="margin-top:0;">{{ t('multi_station.search_conditions') }}</h3>
-
-                <div class="param-row">
-                    <label>{{ t('multi_station.center_location_mode') }}</label>
-                    <select id="centerMode" onchange="toggleCenterLocMode()">
-                        <option value="station">{{ t('multi_station.by_weather_station') }}</option>
-                        <option value="coords">{{ t('multi_station.by_coordinates') }}</option>
-                    </select>
+            <!-- COLLAPSIBLE SECTION 4: Multiple Stations Search Conditions -->
+            <div class="collapsible-wrapper" id="multiStationSection">
+                <div class="collapsible-header" onclick="toggleSection('multiStationSection')">
+                    <strong>{{ t('multi_station.search_conditions') }}</strong>
+                    <span class="collapsible-icon">▼</span>
                 </div>
+                <div class="collapsible-content">
+                    <div class="collapsible-inner">
+                        <div id="multiParamsArea">
+                            <div class="param-row">
+                                <label>{{ t('multi_station.center_location_mode') }}</label>
+                                <select id="centerMode" onchange="toggleCenterLocMode()">
+                                    <option value="station">{{ t('multi_station.by_weather_station') }}</option>
+                                    <option value="coords">{{ t('multi_station.by_coordinates') }}</option>
+                                </select>
+                            </div>
 
-                <div class="param-grid" id="coordsInputArea" style="display:none;">
-                    <div class="thresh-box">
-                        <strong>{{ t('multi_station.center_latitude') }}</strong>
-                        <input type="number" id="centerLat" placeholder="{{ t('multi_station.decimal_deg') }}">
-                    </div>
-                    <div class="thresh-box">
-                        <strong>{{ t('multi_station.center_longitude') }}</strong>
-                        <input type="number" id="centerLon" placeholder="{{ t('multi_station.decimal_deg') }}">
+                            <div class="param-grid" id="coordsInputArea" style="display:none;">
+                                <div class="thresh-box">
+                                    <strong>{{ t('multi_station.center_latitude') }}</strong>
+                                    <input type="number" id="centerLat"
+                                        placeholder="{{ t('multi_station.decimal_deg') }}">
+                                </div>
+                                <div class="thresh-box">
+                                    <strong>{{ t('multi_station.center_longitude') }}</strong>
+                                    <input type="number" id="centerLon"
+                                        placeholder="{{ t('multi_station.decimal_deg') }}">
+                                </div>
+                            </div>
+
+                            <div class="param-row">
+                                <label>{{ t('multi_station.max_distance_km') }}</label>
+                                <select id="maxDist">
+                                    <option value="no_limit">{{ t('multi_station.no_limit') }}</option>
+                                    <option value="50">50</option>
+                                    <option value="200">200</option>
+                                    <option value="500">500</option>
+                                    <option value="2000">2000</option>
+                                </select>
+                            </div>
+
+                            <div class="param-row">
+                                <label>{{ t('multi_station.country_limit') }}</label>
+                                <input type="text" id="countryLimit"
+                                    placeholder="{{ t('multi_station.country_example') }}">
+                            </div>
+
+                            <div class="param-grid">
+                                <div class="thresh-box">
+                                    <strong>{{ t('multi_station.latitude_range') }}</strong>
+                                    <input type="number" id="latMin" placeholder="{{ t('multi_station.min') }}">
+                                    <input type="number" id="latMax" placeholder="{{ t('multi_station.max') }}">
+                                </div>
+                                <div class="thresh-box">
+                                    <strong>{{ t('multi_station.longitude_range') }}</strong>
+                                    <input type="number" id="lonMin" placeholder="{{ t('multi_station.min') }}">
+                                    <input type="number" id="lonMax" placeholder="{{ t('multi_station.max') }}">
+                                </div>
+                                <div class="thresh-box">
+                                    <strong>{{ t('multi_station.elevation_range') }}</strong>
+                                    <input type="number" id="elevMin" placeholder="{{ t('multi_station.min') }}">
+                                    <input type="number" id="elevMax" placeholder="{{ t('multi_station.max') }}">
+                                </div>
+                            </div>
+
+                            <div class="param-row" id="wbanRow" style="display:none;">
+                                <label>{{ t('multi_station.wban_limit') }}</label>
+                                <div class="radio-group">
+                                    <label style="font-weight: normal; width: auto;"><input type="radio"
+                                            name="wbanLimit" value="no" checked> {{ t('multi_station.no_limit')
+                                        }}</label>
+                                    <label style="font-weight: normal; width: auto;"><input type="radio"
+                                            name="wbanLimit" value="99999"> {{ t('multi_station.limit_to_99999')
+                                        }}</label>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
-
-                <div class="param-row">
-                    <label>{{ t('multi_station.max_distance_km') }}</label>
-                    <select id="maxDist">
-                        <option value="no_limit">{{ t('multi_station.no_limit') }}</option>
-                        <option value="50">50</option>
-                        <option value="200">200</option>
-                        <option value="500">500</option>
-                        <option value="2000">2000</option>
-                    </select>
-                </div>
-
-                <div class="param-row">
-                    <label>{{ t('multi_station.country_limit') }}</label>
-                    <input type="text" id="countryLimit" placeholder="{{ t('multi_station.country_example') }}">
-                </div>
-
-                <div class="param-grid">
-                    <div class="thresh-box">
-                        <strong>{{ t('multi_station.latitude_range') }}</strong>
-                        <input type="number" id="latMin" placeholder="{{ t('multi_station.min') }}">
-                        <input type="number" id="latMax" placeholder="{{ t('multi_station.max') }}">
-                    </div>
-                    <div class="thresh-box">
-                        <strong>{{ t('multi_station.longitude_range') }}</strong>
-                        <input type="number" id="lonMin" placeholder="{{ t('multi_station.min') }}">
-                        <input type="number" id="lonMax" placeholder="{{ t('multi_station.max') }}">
-                    </div>
-                    <div class="thresh-box">
-                        <strong>{{ t('multi_station.elevation_range') }}</strong>
-                        <input type="number" id="elevMin" placeholder="{{ t('multi_station.min') }}">
-                        <input type="number" id="elevMax" placeholder="{{ t('multi_station.max') }}">
-                    </div>
-                </div>
-
-                <div class="param-row" id="wbanRow" style="display:none;">
-                    <label>{{ t('multi_station.wban_limit') }}</label>
-                    <div class="radio-group">
-                        <label style="font-weight: normal; width: auto;"><input type="radio" name="wbanLimit" value="no"
-                                checked> {{ t('multi_station.no_limit') }}</label>
-                        <label style="font-weight: normal; width: auto;"><input type="radio" name="wbanLimit"
-                                value="99999"> {{ t('multi_station.limit_to_99999') }}</label>
-                    </div>
-                </div>
-                <div class="divider"></div>
             </div>
+            <div class="divider"></div>
             {% endif %}
 
             <button class="submit-btn" onclick="fetchData()">{{ t('params.get_data') }}</button>
@@ -529,6 +597,10 @@
         </div>
 
     </div>
+    <script>
+        // Pass translation to JavaScript
+        const STATION_INFO_TITLE = "{{ t('params.current_selected_station') }}";
+    </script>
     <script src="{{ url_for('static', filename='script.js') }}"></script>
 </body>
 

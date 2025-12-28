@@ -50,12 +50,65 @@ h3 {
     margin-bottom: 20px;
 }
 
-/* ... (Nav Bar - No Changes) ... */
+/* --- COLLAPSIBLE SECTIONS --- */
+.collapsible-wrapper {
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    margin-bottom: 15px;
+    overflow: hidden;
+    background-color: #fff;
+}
+
+.collapsible-header {
+    background-color: #f8f9fa;
+    padding: 12px 15px;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    user-select: none;
+    transition: background-color 0.2s;
+    border-bottom: 1px solid #ddd;
+}
+
+.collapsible-header:hover {
+    background-color: #e9ecef;
+}
+
+.collapsible-header strong {
+    font-size: 1rem;
+    color: #333;
+}
+
+.collapsible-icon {
+    font-size: 0.9rem;
+    transition: transform 0.3s ease;
+    color: #666;
+}
+
+.collapsible-content {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.4s ease-out;
+}
+
+.collapsible-wrapper.active .collapsible-content {
+    max-height: 2000px;
+}
+
+.collapsible-wrapper.active .collapsible-icon {
+    transform: rotate(180deg);
+}
+
+.collapsible-inner {
+    padding: 15px;
+}
+
+/* ... (Nav Bar - Updated Layout) ... */
 .nav-bar {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    justify-content: center;
     padding: 10px;
     background-color: #e9ecef;
     border-bottom: 1px solid #ccc;
@@ -64,12 +117,29 @@ h3 {
     gap: 10px;
 }
 
+.nav-links {
+    display: flex;
+    gap: 10px;
+    order: 1;
+}
+
 .nav-user {
     font-weight: bold;
     color: #333;
+    order: 2;
+    margin-right: 10px;
+    text-align: right;
+}
+
+.nav-language {
+    width: 100%;
+    order: 3;
+}
+
+#languageSelect {
+    padding: 5px;
     width: 100%;
     text-align: center;
-    margin-bottom: 5px;
 }
 
 .nav-bar a {
@@ -446,7 +516,7 @@ tr:nth-child(even) {
     }
 
     .nav-user {
-        margin-right: auto;
+        margin-right: 10px;
         width: auto;
         margin-bottom: 0;
         text-align: left;

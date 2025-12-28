@@ -13,6 +13,13 @@ let multiStatSortCol = 'val';
 let multiStatSortDir = 'desc';
 let stationLookup = {};
 
+function toggleSection(sectionId) {
+    const section = document.getElementById(sectionId);
+    if (section) {
+        section.classList.toggle('active');
+    }
+}
+
 function getElementValueSafe(id, defaultVal) {
     const el = document.getElementById(id);
     return el ? el.value : defaultVal;
@@ -157,7 +164,12 @@ function handleStationInput() {
     const data = stationLookup[val] || stationLookup[val.trim()];
     if (data) {
         infoDiv.style.display = 'block';
-        infoDiv.innerHTML = `<span class="copyable" title="Copy Name">${data.name}</span><span style="margin: 0 15px; color:#ccc;">|</span><span class="copyable" title="Copy Coordinates">${data.lat}\t${data.lon}</span><span style="margin: 0 15px; color:#ccc;">|</span><span class="copyable" title="Copy Elevation">${data.elev}m</span>`;
+        infoDiv.innerHTML = `
+            <div style="font-size: 0.85em; color: #666; margin-bottom: 5px;">${STATION_INFO_TITLE}</div>
+            <div class="copyable" title="Copy Name" style="margin-bottom: 3px;">${data.name}</div>
+            <div class="copyable" title="Copy Coordinates" style="margin-bottom: 3px;">${data.lat}\t${data.lon}</div>
+            <div class="copyable" title="Copy Elevation">${data.elev}m</div>
+        `;
     } else { infoDiv.style.display = 'none'; }
 }
 
