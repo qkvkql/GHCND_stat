@@ -39,10 +39,10 @@ if os.path.exists(TRANSLATIONS_FILE):
 def get_translation(key, lang=None, **kwargs):
     """Get translation for a key, with optional format parameters"""
     if lang is None:
-        lang = session.get('language', 'zh')
+        lang = session.get('language', 'en')
     keys = key.split('.')
     try:
-        value = TRANSLATIONS.get(lang, TRANSLATIONS.get('zh', {}))
+        value = TRANSLATIONS.get(lang, TRANSLATIONS.get('en', {}))
         for k in keys:
             value = value[k]
         if kwargs:
@@ -51,7 +51,7 @@ def get_translation(key, lang=None, **kwargs):
     except (KeyError, TypeError, AttributeError):
         # Fallback to English, then to key itself
         try:
-            value = TRANSLATIONS.get('zh', {})
+            value = TRANSLATIONS.get('en', {})
             for k in keys:
                 value = value[k]
             if kwargs:
@@ -61,8 +61,8 @@ def get_translation(key, lang=None, **kwargs):
             return key
 
 def get_current_language():
-    """Get current language from session, default to 'zh'"""
-    return session.get('language', 'zh')
+    """Get current language from session, default to 'en'"""
+    return session.get('language', 'en')
 
 @app.context_processor
 def inject_csrf_token():
@@ -554,7 +554,7 @@ def get_data():
         sort_by = req.get('sort_by', 'DATE')
         sort_dir = req.get('sort_dir', 'desc')
         selected_elements = req.get('selected_elements', ['TMIN', 'TAVG', 'TMAX'])
-        record_limit = int(req.get('limit', 5))
+        record_limit = int(req.get('limit', 15))
         custom_avg_tmin = req.get('custom_avg_tmin')
         custom_avg_tavg = req.get('custom_avg_tavg')
         custom_avg_tmax = req.get('custom_avg_tmax')
@@ -741,7 +741,7 @@ def get_data():
             wban_limit = req.get('wban_limit', 'no')
             multi_sort_by = req.get('multi_sort_by', 'distance')
             multi_sort_dir = req.get('multi_sort_dir', 'asc')
-            multi_limit = int(req.get('multi_limit', 5))
+            multi_limit = int(req.get('multi_limit', 15))
 
             st_df = GHCND_DF if source == 'GHCND' else GSOD_DF
             if center_mode == 'coords':

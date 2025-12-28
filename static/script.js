@@ -547,7 +547,7 @@ async function fetchData() {
 
     // SAFE GET for Multi Params (might not exist for basic users)
     const multiLimitSelect = document.getElementById('multiLimitSelect');
-    const multiLimit = multiLimitSelect ? multiLimitSelect.value : 5;
+    const multiLimit = multiLimitSelect ? multiLimitSelect.value : 15;
 
     recordsTbody.innerHTML = '';
     if (multiTbody) multiTbody.innerHTML = '';
