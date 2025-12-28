@@ -359,6 +359,8 @@ select {
 .table-responsive {
     width: 100%;
     overflow-x: auto;
+    overflow-y: auto;
+    max-height: 400px;
     -webkit-overflow-scrolling: touch;
     margin-top: 10px;
     border: 1px solid #ddd;
