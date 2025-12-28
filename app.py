@@ -548,12 +548,13 @@ def get_data():
         start_date = req.get('start_date')
         end_date = req.get('end_date')
         month_filter = req.get('month_filter')
+        day_filter = req.get('day_filter', '0')
         period_mode = req.get('period') 
         hemisphere = req.get('hemisphere', 'north')
         sort_by = req.get('sort_by', 'DATE')
         sort_dir = req.get('sort_dir', 'desc')
         selected_elements = req.get('selected_elements', ['TMIN', 'TAVG', 'TMAX'])
-        record_limit = int(req.get('limit', 15))
+        record_limit = int(req.get('limit', 5))
         custom_avg_tmin = req.get('custom_avg_tmin')
         custom_avg_tavg = req.get('custom_avg_tavg')
         custom_avg_tmax = req.get('custom_avg_tmax')
@@ -567,7 +568,11 @@ def get_data():
         if month_filter and month_filter != "0":
             if month_filter == "winter_3": df = df[df['DATE'].dt.month.isin([12, 1, 2])]
             elif month_filter == "summer_3": df = df[df['DATE'].dt.month.isin([6, 7, 8])]
-            else: df = df[df['DATE'].dt.month == int(month_filter)]
+            else: 
+                df = df[df['DATE'].dt.month == int(month_filter)]
+                # Apply day filter if specified and month is a single month (not winter_3 or summer_3)
+                if day_filter and day_filter != "0":
+                    df = df[df['DATE'].dt.day == int(day_filter)]
 
         def get_val_and_dates(sub_df, method='min'):
             if sub_df.empty: return {'val': '-', 'dates': []}
@@ -736,7 +741,7 @@ def get_data():
             wban_limit = req.get('wban_limit', 'no')
             multi_sort_by = req.get('multi_sort_by', 'distance')
             multi_sort_dir = req.get('multi_sort_dir', 'asc')
-            multi_limit = int(req.get('multi_limit', 15))
+            multi_limit = int(req.get('multi_limit', 5))
 
             st_df = GHCND_DF if source == 'GHCND' else GSOD_DF
             if center_mode == 'coords':
@@ -830,7 +835,7 @@ def get_multi_stats():
         if not isinstance(station_ids, list):
             return jsonify({'status': 'error', 'message': 'station_ids must be a list'}), 400
         station_ids = [str(s).strip() for s in station_ids if str(s).strip()]
-        MAX_MULTI_IDS = 200
+        MAX_MULTI_IDS = 1000
         if len(station_ids) > MAX_MULTI_IDS:
             return jsonify({'status': 'error', 'message': f'Max {MAX_MULTI_IDS} stations allowed'}), 400
         source = req.get('source', 'GHCND')
@@ -838,6 +843,7 @@ def get_multi_stats():
         start_date = req.get('start_date')
         end_date = req.get('end_date')
         month_filter = req.get('month_filter')
+        day_filter = req.get('day_filter', '0')
         period_mode = req.get('period')
         
         # Get Thresholds (Handle empty strings safely)
@@ -871,7 +877,11 @@ def get_multi_stats():
             if month_filter and month_filter != "0":
                 if month_filter == "winter_3": df = df[df['DATE'].dt.month.isin([12, 1, 2])]
                 elif month_filter == "summer_3": df = df[df['DATE'].dt.month.isin([6, 7, 8])]
-                else: df = df[df['DATE'].dt.month == int(month_filter)]
+                else: 
+                    df = df[df['DATE'].dt.month == int(month_filter)]
+                    # Apply day filter if specified and month is a single month (not winter_3 or summer_3)
+                    if day_filter and day_filter != "0":
+                        df = df[df['DATE'].dt.day == int(day_filter)]
 
             val = '-'
             dates_info = []

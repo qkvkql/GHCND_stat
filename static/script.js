@@ -13,6 +13,12 @@ let multiStatSortCol = 'val';
 let multiStatSortDir = 'desc';
 let stationLookup = {};
 
+// Helper function to convert season+hemisphere to internal period mode
+function getPeriodModeFromSeason(seasonMode, hemisphere) {
+    // North + Winter = p1, North + Summer = p2, South + Winter = p2, South + Summer = p1
+    return ((hemisphere === 'north' && seasonMode === 'winter') || (hemisphere === 'south' && seasonMode === 'summer')) ? 'p1' : 'p2';
+}
+
 function toggleSection(sectionId) {
     const section = document.getElementById(sectionId);
     if (section) {
@@ -28,7 +34,9 @@ function getElementValueSafe(id, defaultVal) {
 function openDateDetails(type, value, specificStationId = null) {
     const stationId = specificStationId || document.getElementById('stationId').value;
     const source = document.getElementById('dataSource').value;
-    const periodMode = document.querySelector('input[name="period"]:checked').value;
+    const seasonMode = document.querySelector('input[name="season"]:checked').value;
+    const hemisphere = document.querySelector('input[name="hemisphere"]:checked').value;
+    const periodMode = getPeriodModeFromSeason(seasonMode, hemisphere);
 
     // Get Thresholds
     const tminVal = document.getElementById('tminVal').value;
@@ -91,11 +99,12 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    document.querySelectorAll('input[name="hemisphere"], input[name="period"]').forEach(radio => {
+    document.querySelectorAll('input[name="hemisphere"], input[name="season"]').forEach(radio => {
         radio.addEventListener('change', syncPeriodColumns);
     });
 
     syncPeriodColumns();
+    updateDayDropdown(); // Initialize day dropdown on page load
 });
 
 async function fetchDefaultStationDetails(query) {
@@ -116,6 +125,45 @@ function applyQuickDateRange() {
     if (selector.value === '1991-2020') { startInput.value = '1991-01-01'; endInput.value = '2020-12-31'; }
     else if (selector.value === '1961-1990') { startInput.value = '1961-01-01'; endInput.value = '1990-12-31'; }
     else { startInput.value = '1800-01-01'; endInput.value = '2100-12-31'; }
+}
+
+function updateDayDropdown() {
+    const monthFilter = document.getElementById('monthFilter');
+    const dayFilter = document.getElementById('dayFilter');
+    if (!monthFilter || !dayFilter) return;
+    
+    const selectedMonth = monthFilter.value;
+    
+    // Show day dropdown only for single month selections (1-12)
+    if (selectedMonth && selectedMonth !== '0' && selectedMonth !== 'winter_3' && selectedMonth !== 'summer_3') {
+        dayFilter.style.display = '';
+        
+        // Get max days for the selected month
+        const monthNum = parseInt(selectedMonth);
+        let maxDays = 31;
+        if (monthNum === 2) {
+            maxDays = 29; // February: account for leap years
+        } else if ([4, 6, 9, 11].includes(monthNum)) {
+            maxDays = 30; // April, June, September, November
+        }
+        
+        // Populate day options - preserve the "All Days" option text from template
+        const allDaysOption = dayFilter.querySelector('option[value="0"]');
+        const allDaysText = allDaysOption ? allDaysOption.textContent : 'All Days';
+        dayFilter.innerHTML = `<option value="0">${allDaysText}</option>`;
+        for (let day = 1; day <= maxDays; day++) {
+            const option = document.createElement('option');
+            option.value = day;
+            option.textContent = day;
+            dayFilter.appendChild(option);
+        }
+        
+        // Reset to "All Days" when month changes
+        dayFilter.value = '0';
+    } else {
+        dayFilter.style.display = 'none';
+        dayFilter.value = '0';
+    }
 }
 
 function toggleCenterLocMode() {
@@ -333,6 +381,10 @@ async function calcMultiStats() {
     const distMap = {};
     currentMultiStations.forEach(s => distMap[s.id] = s.dist);
 
+    const seasonMode = document.querySelector('input[name="season"]:checked').value;
+    const hemisphere = document.querySelector('input[name="hemisphere"]:checked').value;
+    const periodMode = getPeriodModeFromSeason(seasonMode, hemisphere);
+    
     const payload = {
         station_ids: currentMultiStations.map(s => s.id),
         source: document.getElementById('dataSource').value,
@@ -340,7 +392,8 @@ async function calcMultiStats() {
         start_date: document.getElementById('startDate').value,
         end_date: document.getElementById('endDate').value,
         month_filter: document.getElementById('monthFilter').value,
-        period: document.querySelector('input[name="period"]:checked').value,
+        day_filter: document.getElementById('dayFilter').value || '0',
+        period: periodMode,
         tmin_val: document.getElementById('tminVal').value,
         tmin_dir: document.getElementById('tminDir').value,
         tavg_val: document.getElementById('tavgVal').value,
@@ -387,7 +440,8 @@ function sortPeriodTable(column) {
 
 function syncPeriodColumns() {
     const hemi = document.querySelector('input[name="hemisphere"]:checked').value;
-    const peri = document.querySelector('input[name="period"]:checked').value;
+    const season = document.querySelector('input[name="season"]:checked').value;
+    const peri = getPeriodModeFromSeason(season, hemi);
 
     if ((hemi === 'north' && peri === 'p1') || (hemi === 'south' && peri === 'p2')) {
         periodColVisibility.min_tmin = true;
@@ -493,7 +547,7 @@ async function fetchData() {
 
     // SAFE GET for Multi Params (might not exist for basic users)
     const multiLimitSelect = document.getElementById('multiLimitSelect');
-    const multiLimit = multiLimitSelect ? multiLimitSelect.value : 15;
+    const multiLimit = multiLimitSelect ? multiLimitSelect.value : 5;
 
     recordsTbody.innerHTML = '';
     if (multiTbody) multiTbody.innerHTML = '';
@@ -511,14 +565,19 @@ async function fetchData() {
 
     const finalStationId = document.getElementById('stationId').value || document.getElementById('stationInput').value;
 
+    const seasonMode = document.querySelector('input[name="season"]:checked').value;
+    const hemisphere = document.querySelector('input[name="hemisphere"]:checked').value;
+    const periodMode = getPeriodModeFromSeason(seasonMode, hemisphere);
+
     const payload = {
         station_id: finalStationId,
         source: source,
         start_date: document.getElementById('startDate').value,
         end_date: document.getElementById('endDate').value,
         month_filter: document.getElementById('monthFilter').value,
-        period: document.querySelector('input[name="period"]:checked').value,
-        hemisphere: document.querySelector('input[name="hemisphere"]:checked').value,
+        day_filter: document.getElementById('dayFilter') ? (document.getElementById('dayFilter').value || '0') : '0',
+        period: periodMode,
+        hemisphere: hemisphere,
         sort_by: currentSortBy,
         sort_dir: currentSortDir,
         limit: recordLimit,

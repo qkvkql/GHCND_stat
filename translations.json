@@ -7,7 +7,8 @@
       "welcome_advanced_visitor": "Welcome, Advanced Visitor!",
       "manage_invites": "Manage Invites",
       "logout": "Logout",
-      "exit_visitor_mode": "Exit Visitor Mode"
+      "exit_visitor_mode": "Exit Visitor Mode",
+      "menu": "Menu"
     },
     "auth": {
       "login_title": "User Login",
@@ -27,19 +28,19 @@
     },
     "title": "NOAA Global Daily Statistics",
     "sections": {
-      "parameters": "1. Parameters",
-      "global_statistics": "2a. Global Statistics",
-      "period_averages": "2b. Period Averages (Summary)",
-      "period_details": "2c. Period Details (By Range)",
-      "record_list": "3. Record List (Top {limit} from Sorted Result)",
-      "multiple_stations": "4. Multiple Weather Stations (Top {limit} Matches)",
-      "multiple_stats": "5. Multiple Stations Statistics (For Stations in Part 4)"
+      "parameters": "Parameters",
+      "global_statistics": "Global Statistics",
+      "period_averages": "Period Averages (Summary)",
+      "period_details": "Period Details (By Range)",
+      "record_list": "Record List",
+      "multiple_stations": "Multiple Weather Stations",
+      "multiple_stats": "Multiple Stations Statistics"
     },
     "params": {
       "data_source": "Data Source:",
       "data_source_note": "GHCND: More stations in North America, fewer errors; GSOD: More stations outside North America, more errors",
       "station_search": "Station Search:",
-      "current_selected_station": "Current selected station:",
+      "current_selected_station": "Current Selected Station:",
       "date_restrict": "Date Restrict",
       "temperature_threshold": "Temperature Threshold",
       "explosive_power": "Explosive Power",
@@ -47,12 +48,14 @@
       "date_range": "Date Range:",
       "month_focus": "Month Focus:",
       "hemisphere": "Hemisphere:",
-      "period_mode": "Period Mode:",
+      "season_mode": "Season:",
       "to": "to",
       "get_data": "Get Data & Statistics",
       "loading_data": "Loading data...",
       "type_name_or_id": "Type Name or ID...",
-      "custom_all": "Custom / All"
+      "custom_all": "Custom / All",
+      "all_days": "All Days",
+      "data_source_info": "Data Source Information"
     },
     "links": {
       "ghcnd_stations_list": "GHCND stations list",
@@ -79,9 +82,9 @@
       "north": "North",
       "south": "South"
     },
-    "period": {
-      "period_1": "Period 1 (July 16 - July 15)",
-      "period_2": "Period 2 (Jan 16 - Jan 15)"
+    "season": {
+      "winter": "Winter",
+      "summer": "Summer"
     },
     "thresholds": {
       "tmin_threshold": "TMIN Threshold",
@@ -227,7 +230,8 @@
       "welcome_advanced_visitor": "欢迎, 高级访客!",
       "manage_invites": "管理邀请",
       "logout": "登出",
-      "exit_visitor_mode": "退出访客模式"
+      "exit_visitor_mode": "退出访客模式",
+      "menu": "菜单"
     },
     "auth": {
       "login_title": "用户登录",
@@ -247,17 +251,17 @@
     },
     "title": "NOAA逐日气温统计",
     "sections": {
-      "parameters": "1. 设置",
-      "global_statistics": "2a. 单站概览",
-      "period_averages": "2b. 单站各周期极端气温平均值",
-      "period_details": "2c. 单站各周期详细统计",
-      "record_list": "单站列表 (最多{limit}条记录)",
-      "multiple_stations": "4. 多站列表 (最多{limit}条记录)",
-      "multiple_stats": "5. 多站单项对比"
+      "parameters": "设置",
+      "global_statistics": "概览",
+      "period_averages": "冬均最低/夏均最高",
+      "period_details": "冬/夏",
+      "record_list": "逐日记录",
+      "multiple_stations": "多站列表",
+      "multiple_stats": "多站单项对比"
     },
     "params": {
       "data_source": "数据源:",
-      "data_source_note": "GHCND: 北美站点多、错误少; GSOD: 非北美站点多、错误多",
+      "data_source_note": "GHCND北美站点多&错误少。 GSOD非北美站点多&错误多",
       "station_search": "站点搜索:",
       "current_selected_station": "当前选择的站点:",
       "date_restrict": "日期限制",
@@ -267,12 +271,14 @@
       "date_range": "日期限制:",
       "month_focus": "月份限制:",
       "hemisphere": "半球:",
-      "period_mode": "周期类型:",
+      "season_mode": "季节:",
       "to": "至",
       "get_data": "获取数据",
       "loading_data": "正在加载数据...",
       "type_name_or_id": "输入站名或站号...",
-      "custom_all": "自定义 / 全部"
+      "custom_all": "自定义 / 全部",
+      "all_days": "全部日期",
+      "data_source_info": "数据源说明"
     },
     "links": {
       "ghcnd_stations_list": "GHCND 站点列表",
@@ -299,9 +305,9 @@
       "north": "北半球",
       "south": "南半球"
     },
-    "period": {
-      "period_1": "北半球冬季(=南半球夏季)",
-      "period_2": "北半球夏季(=南半球冬季)"
+    "season": {
+      "winter": "冬季",
+      "summer": "夏季"
     },
     "thresholds": {
       "tmin_threshold": "夜温阈值",
@@ -369,7 +375,7 @@
       "fetching_records": "正在更新列表... 请稍候...",
       "max_stations": "设置行数:",
       "update_list": "更新列表",
-      "copy_table_tsv": "复制(TSV)",
+      "copy_table_tsv": "复制表格(TSV)",
       "updating_station_list": "正在更新多站列表... 请稍候...",
       "name": "站名",
       "latitude": "纬度",
