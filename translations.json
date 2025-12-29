@@ -93,7 +93,9 @@
       "header_min_tmin": "Min TMIN (Years)",
       "header_min_tmax": "Min TMAX (Years)",
       "header_max_tmin": "Max TMIN (Years)",
-      "header_max_tmax": "Max TMAX (Years)"
+      "header_max_tmax": "Max TMAX (Years)",
+      "header_count_tmin": "Count TMIN",
+      "header_count_tmax": "Count TMAX"
     },
     "thresholds": {
       "tmin_threshold": "TMIN Threshold",
@@ -177,7 +179,8 @@
       "station_id": "Station ID",
       "station_name": "Station Name",
       "value": "Value",
-      "relevant_dates_periods": "Relevant Dates/Periods"
+      "relevant_dates_periods": "Relevant Dates/Periods",
+      "total_valid": "Total Valid"
     },
     "statistics": {
       "average_tmin": "Average TMIN",
@@ -372,7 +375,8 @@
       "station_id": "ID",
       "station_name": "站名",
       "value": "值",
-      "relevant_dates_periods": "日期/(冬/夏)"
+      "relevant_dates_periods": "日期/(冬/夏)",
+      "total_valid": "总计"
     },
     "statistics": {
       "average_tmin": "平均夜温",
@@ -451,10 +455,12 @@
       "filter_label": "按月筛选",
       "full_year": "全年",
       "header_date": "日期",
-      "header_min_tmin": "最低夜温",
+      "header_min_tmin": "最低气温",
       "header_min_tmax": "最低昼温",
       "header_max_tmin": "最高夜温",
-      "header_max_tmax": "最高昼温"
+      "header_max_tmax": "最高气温",
+      "header_count_tmin": "夜温总计",
+      "header_count_tmax": "昼温总计"
     },
     "modal": {
       "select_period": "选择冬/夏",

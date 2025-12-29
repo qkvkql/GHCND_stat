@@ -262,10 +262,15 @@ def fetch_and_clean_data(source, station_id, start_date, end_date):
             return pd.DataFrame()
     else:
         api_url = "https://www.ncei.noaa.gov/access/services/data/v1"
+        # GSOD API requires startDate and endDate
+        s_date = start_date if start_date else '1800-01-01'
+        e_date = end_date if end_date else datetime.now().strftime('%Y-%m-%d')
+        
         params = {
             'dataset': 'global-summary-of-the-day', 'stations': station_id,
-            'startDate': start_date, 'endDate': end_date,
-            'dataTypes': 'TEMP,MAX,MIN', 'format': 'json', 'units': 'standard', 'includeStationName': 'false'
+            'startDate': s_date, 'endDate': e_date,
+            'dataTypes': 'TEMP,MAX,MIN', 'format': 'json', 'units': 'standard', 'includeStationName': 'false',
+            'limit': 1000
         }
         try:
             resp = requests.get(api_url, params=params, timeout=15)
@@ -596,7 +601,7 @@ def get_data():
             if t_val is not None and t_val != "":
                 if t_dir == 'lte': count_match = int((sub_df['DATA_VALUE'] <= float(t_val)).sum())
                 else: count_match = int((sub_df['DATA_VALUE'] >= float(t_val)).sum())
-            return {'min': get_val_and_dates(sub_df, 'min'), 'avg': float(round(natural_avg, 2)), 'max': get_val_and_dates(sub_df, 'max'), 'count_match': count_match, 'explosive_power': explosive_power}
+            return {'min': get_val_and_dates(sub_df, 'min'), 'avg': float(round(natural_avg, 2)), 'max': get_val_and_dates(sub_df, 'max'), 'count_match': count_match, 'explosive_power': explosive_power, 'total': int(len(sub_df))}
 
         stats['TMIN'] = calc_global_stats('TMIN', custom_avg_tmin)
         stats['TAVG'] = calc_global_stats('TAVG', custom_avg_tavg)
@@ -1350,6 +1355,9 @@ def extreme_temps():
             else:
                 entry['max_tmax_val'] = '-'
                 entry['max_tmax_years'] = []
+            
+            entry['count_tmin'] = len(sub_tmin)
+            entry['count_tmax'] = len(sub_tmax)
             
             results.append(entry)
 

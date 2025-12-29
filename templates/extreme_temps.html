@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <style>
         .container {
-            max-width: 800px;
+            max-width: 1200px;
             margin: 30px auto;
             padding: 20px;
             background: white;
@@ -243,6 +243,8 @@
                         <th onclick="sortTable(2)">{{ t('extreme_temps.header_min_tmax') }} &#8645;</th>
                         <th onclick="sortTable(3)">{{ t('extreme_temps.header_max_tmin') }} &#8645;</th>
                         <th onclick="sortTable(4)">{{ t('extreme_temps.header_max_tmax') }} &#8645;</th>
+                        <th onclick="sortTable(5)">{{ t('extreme_temps.header_count_tmin') }} &#8645;</th>
+                        <th onclick="sortTable(6)">{{ t('extreme_temps.header_count_tmax') }} &#8645;</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -273,10 +275,12 @@
                             <span class="year-list">{{ row.max_tmax_years|join(', ') }}</span>
                             {% endif %}
                         </td>
+                        <td class="copy-cell">{{ row.count_tmin }}</td>
+                        <td class="copy-cell">{{ row.count_tmax }}</td>
                     </tr>
                     {% else %}
                     <tr>
-                        <td colspan="5" style="text-align:center; padding: 20px;">No data available.</td>
+                        <td colspan="7" style="text-align:center; padding: 20px;">No data available.</td>
                     </tr>
                     {% endfor %}
                 </tbody>

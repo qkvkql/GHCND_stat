@@ -307,6 +307,7 @@
                                     <option value="50">50</option>
                                     <option value="200">200</option>
                                     <option value="500">500</option>
+                                    <option value="1000">1000</option>
                                     <option value="2000">2000</option>
                                 </select>
                             </div>
@@ -398,6 +399,7 @@
                             <th>{{ t('tables.max_c') }}</th>
                             <th>{{ t('tables.explosive_power') }}</th>
                             <th>{{ t('tables.days_matching_threshold') }}</th>
+                            <th>{{ t('tables.total_valid') }}</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -408,6 +410,7 @@
                             <td id="stat-tmin-max">-</td>
                             <td id="stat-tmin-power">-</td>
                             <td id="stat-tmin-count">-</td>
+                            <td id="stat-tmin-total">-</td>
                         </tr>
                         <tr>
                             <td><strong>{{ t('statistics.label_tavg_min') }}</strong></td>
@@ -416,6 +419,7 @@
                             <td id="stat-tavg-max">-</td>
                             <td id="stat-tavg-power">-</td>
                             <td id="stat-tavg-count">-</td>
+                            <td id="stat-tavg-total">-</td>
                         </tr>
                         <tr>
                             <td><strong>{{ t('statistics.label_tmax_min') }}</strong></td>
@@ -424,6 +428,7 @@
                             <td id="stat-tmax-max">-</td>
                             <td id="stat-tmax-power">-</td>
                             <td id="stat-tmax-count">-</td>
+                            <td id="stat-tmax-total">-</td>
                         </tr>
                     </tbody>
                 </table>

@@ -828,6 +828,7 @@ function updateStatRow(prefix, data) {
     setSimpleCell(`stat-${prefix}-avg`, data.avg);
     setSimpleCell(`stat-${prefix}-power`, data.explosive_power);
     setSimpleCell(`stat-${prefix}-count`, data.count_match);
+    setSimpleCell(`stat-${prefix}-total`, data.total);
 }
 
 // Removed unused element filter functions
