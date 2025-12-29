@@ -853,15 +853,18 @@ def get_multi_stats():
         day_filter = req.get('day_filter', '0')
         period_mode = req.get('period')
         
-        # Get Thresholds (Handle empty strings safely)
-        def safe_float(val):
-            return float(val) if val else 0.0
+        # Get Thresholds (Handle empty strings safely - preserve None if empty)
+        def get_t_val(key):
+            v = req.get(key)
+            if v is None or str(v).strip() == "": return None
+            try: return float(v)
+            except: return None
 
-        t_val_tmin = safe_float(req.get('tmin_val'))
+        t_val_tmin = get_t_val('tmin_val')
         t_dir_tmin = req.get('tmin_dir')
-        t_val_tavg = safe_float(req.get('tavg_val'))
+        t_val_tavg = get_t_val('tavg_val')
         t_dir_tavg = req.get('tavg_dir')
-        t_val_tmax = safe_float(req.get('tmax_val'))
+        t_val_tmax = get_t_val('tmax_val')
         t_dir_tmax = req.get('tmax_dir')
 
         results = []
@@ -923,8 +926,8 @@ def get_multi_stats():
                     val = float(max_val)
                     dates_info = sub[sub['DATA_VALUE'] == max_val]['DATE'].dt.strftime('%Y-%m-%d').tolist()
             
-            # 4. Maximum Days (Count)
-            elif 'days' in metric:
+            # 4. Maximum Days per Period (Count)
+            elif metric.startswith('max_days_'):
                 elem = metric.split('_')[2].upper()
                 sub = df[df['ELEMENT'] == elem]
                 
@@ -941,29 +944,69 @@ def get_multi_stats():
                         sub.loc[mask, 'Season_Year'] = sub['Season_Year'] - 1
                     
                     # Determine Threshold
-                    curr_t_val, curr_t_dir = 0, 'lte'
+                    curr_t_val, curr_t_dir = None, 'lte'
                     if elem == 'TMIN': curr_t_val, curr_t_dir = t_val_tmin, t_dir_tmin
                     elif elem == 'TAVG': curr_t_val, curr_t_dir = t_val_tavg, t_dir_tavg
                     elif elem == 'TMAX': curr_t_val, curr_t_dir = t_val_tmax, t_dir_tmax
                     
-                    # Filter matches
-                    if curr_t_dir == 'lte':
-                        sub['is_match'] = sub['DATA_VALUE'] <= curr_t_val
+                    if curr_t_val is not None:
+                        # Filter matches
+                        if curr_t_dir == 'lte':
+                            sub['is_match'] = sub['DATA_VALUE'] <= curr_t_val
+                        else:
+                            sub['is_match'] = sub['DATA_VALUE'] >= curr_t_val
+                        
+                        # Count matches per season
+                        counts = sub[sub['is_match']].groupby('Season_Year').size()
+                        
+                        if not counts.empty:
+                            val = int(counts.max()) 
+                            top_seasons = counts[counts == counts.max()].index.tolist()
+                            if top_seasons:
+                                dates_info = [f"{int(y)}-{int(y)+1}" for y in top_seasons]
+                        else:
+                            val = 0
                     else:
-                        sub['is_match'] = sub['DATA_VALUE'] >= curr_t_val
+                        val = '-' # No threshold provided
+                else:
+                    val = 0
+
+            # 5. Total Days across all records (Count matching threshold)
+            elif metric.startswith('total_days_'):
+                elem = metric.split('_')[2].upper()
+                sub = df[df['ELEMENT'] == elem]
+                
+                if not sub.empty:
+                    # Determine Threshold
+                    curr_t_val, curr_t_dir = None, 'lte'
+                    if elem == 'TMIN': curr_t_val, curr_t_dir = t_val_tmin, t_dir_tmin
+                    elif elem == 'TAVG': curr_t_val, curr_t_dir = t_val_tavg, t_dir_tavg
+                    elif elem == 'TMAX': curr_t_val, curr_t_dir = t_val_tmax, t_dir_tmax
                     
-                    # Count matches per season
-                    counts = sub[sub['is_match']].groupby('Season_Year').size()
-                    
-                    # Convert numpy int64 to python int
-                    if not counts.empty:
-                        # .item() safely converts numpy scalars to python scalars
-                        val = int(counts.max()) 
-                        top_seasons = counts[counts == counts.max()].index.tolist()
-                        if top_seasons:
-                            dates_info = [f"{int(y)}-{int(y)+1}" for y in top_seasons]
+                    if curr_t_val is not None:
+                        # Filter matches
+                        if curr_t_dir == 'lte':
+                            match_count = (sub['DATA_VALUE'] <= curr_t_val).sum()
+                        else:
+                            match_count = (sub['DATA_VALUE'] >= curr_t_val).sum()
+                        val = int(match_count)
                     else:
-                        val = 0
+                        val = '-' # No threshold
+                    
+                    dates_info = [] # No dates for total sum
+                else:
+                    val = 0
+                    dates_info = []
+
+            # 6. Total days with valid value (non-null)
+            elif metric.startswith('valid_days_'):
+                elem = metric.split('_')[2].upper()
+                sub = df[df['ELEMENT'] == elem]
+                if not sub.empty:
+                    val = int(len(sub))
+                else:
+                    val = 0
+                dates_info = []
 
             return {'id': sid, 'name': s_name, 'val': val, 'dates': dates_info}
 
@@ -1356,12 +1399,14 @@ def extreme_temps():
                 entry['max_tmax_val'] = '-'
                 entry['max_tmax_years'] = []
             
-            entry['count_tmin'] = len(sub_tmin)
-            entry['count_tmax'] = len(sub_tmax)
+            entry['count_tmin_val'] = len(sub_tmin)
+            entry['count_tmin_years'] = sub_tmin['DATE'].dt.year.tolist() if not sub_tmin.empty else []
+            entry['count_tmax_val'] = len(sub_tmax)
+            entry['count_tmax_years'] = sub_tmax['DATE'].dt.year.tolist() if not sub_tmax.empty else []
             
             results.append(entry)
 
-    return render_template('extreme_temps.html', results=results, station_name=station_name, season=season, station_info=station_info)
+    return render_template('extreme_temps.html', results=results, station_id=station_id, station_name=station_name, source=source, season=season, station_info=station_info)
 
 if __name__ == '__main__':
     app.run(debug=True, port=1002)

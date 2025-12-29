@@ -184,6 +184,16 @@
                 opacity: 0;
             }
         }
+
+        .clickable-cell {
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .clickable-cell:hover {
+            background-color: #f0f8ff;
+            color: #0056b3;
+        }
     </style>
 </head>
 
@@ -251,32 +261,42 @@
                     {% for row in results %}
                     <tr data-month="{{ row.md[:2] }}">
                         <td>{{ row.md }}</td>
-                        <td class="copy-cell">
+                        <td class="clickable-cell">
                             <span class="val">{{ row.min_tmin_val }}</span>
                             {% if row.min_tmin_years %}
                             <span class="year-list">{{ row.min_tmin_years|join(', ') }}</span>
                             {% endif %}
                         </td>
-                        <td class="copy-cell">
+                        <td class="clickable-cell">
                             <span class="val">{{ row.min_tmax_val }}</span>
                             {% if row.min_tmax_years %}
                             <span class="year-list">{{ row.min_tmax_years|join(', ') }}</span>
                             {% endif %}
                         </td>
-                        <td class="copy-cell">
+                        <td class="clickable-cell">
                             <span class="val">{{ row.max_tmin_val }}</span>
                             {% if row.max_tmin_years %}
                             <span class="year-list">{{ row.max_tmin_years|join(', ') }}</span>
                             {% endif %}
                         </td>
-                        <td class="copy-cell">
+                        <td class="clickable-cell">
                             <span class="val">{{ row.max_tmax_val }}</span>
                             {% if row.max_tmax_years %}
                             <span class="year-list">{{ row.max_tmax_years|join(', ') }}</span>
                             {% endif %}
                         </td>
-                        <td class="copy-cell">{{ row.count_tmin }}</td>
-                        <td class="copy-cell">{{ row.count_tmax }}</td>
+                        <td class="clickable-cell">
+                            {{ row.count_tmin_val }}
+                            {% if row.count_tmin_years %}
+                            <span class="year-list" style="display:none">{{ row.count_tmin_years|join(', ') }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="clickable-cell">
+                            {{ row.count_tmax_val }}
+                            {% if row.count_tmax_years %}
+                            <span class="year-list" style="display:none">{{ row.count_tmax_years|join(', ') }}</span>
+                            {% endif %}
+                        </td>
                     </tr>
                     {% else %}
                     <tr>
@@ -320,11 +340,25 @@
                 navigator.clipboard.writeText(text).then(() => { showToast('Copied info!'); });
             }
 
-            // Cell Copy
-            const targetCell = e.target.closest('.copy-cell');
+            // Cell Redirection
+            const targetCell = e.target.closest('.clickable-cell');
             if (targetCell) {
-                const text = targetCell.innerText.trim();
-                navigator.clipboard.writeText(text).then(() => { showToast('Copied!'); });
+                const tr = targetCell.closest('tr');
+                const md = tr.cells[0].innerText.trim(); // First cell is "MM-DD"
+
+                // Find all years in the cell text (using textContent to pick up hidden years)
+                const text = targetCell.textContent;
+                const yearMatches = text.match(/\b\d{4}\b/g);
+
+                if (yearMatches && yearMatches.length > 0) {
+                    const uniqueYears = [...new Set(yearMatches)];
+                    const dateListString = uniqueYears.map(year => `${year}-${md}`).join(',');
+                    const stationId = "{{ station_id }}";
+                    const source = "{{ source }}";
+
+                    const url = `/date_details?station_id=${stationId}&source=${source}&type=list&value=${dateListString}`;
+                    window.open(url, '_blank');
+                }
             }
         });
 

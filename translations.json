@@ -197,7 +197,13 @@
       "maximum_tmax": "Maximum TMAX",
       "max_days_tmin": "Max Days matching TMIN Threshold",
       "max_days_tavg": "Max Days matching TAVG Threshold",
-      "max_days_tmax": "Max Days matching TMAX Threshold"
+      "max_days_tmax": "Max Days matching TMAX Threshold",
+      "total_days_tmin": "Total Days matching TMIN Threshold",
+      "total_days_tavg": "Total Days matching TAVG Threshold",
+      "total_days_tmax": "Total Days matching TMAX Threshold",
+      "valid_days_tmin": "Total days with valid TMIN value",
+      "valid_days_tavg": "Total days with valid TAVG value",
+      "valid_days_tmax": "Total days with valid TMAX value"
     },
     "messages": {
       "copied_to_clipboard": "Copied to clipboard!",
@@ -205,7 +211,7 @@
       "no_matching_stations": "No matching stations found.",
       "no_stats_available": "No stats available.",
       "no_period_data": "No period data available.",
-      "station_data_error": "Station not found or failed to fetch valid data. Please check the station ID and network connection."
+      "station_data_error": "Station not found or failed to fetch valid data. Please check the station ID and date range restriction."
     },
     "details_page": {
       "title": "Detailed Records - {station_name}",
@@ -344,10 +350,10 @@
       "val_used_total": "值 (有效/总)",
       "update_table": "更新表格",
       "period_range": "冬/夏",
-      "data_coverage": "实际 / 预期",
-      "days_tmin": "夜温天数",
-      "days_tavg": "均温天数",
-      "days_tmax": "昼温天数",
+      "data_coverage": "有记录天数/总",
+      "days_tmin": "夜温阈值天数",
+      "days_tavg": "均温阈值天数",
+      "days_tmax": "昼温阈值天数",
       "min_tmin": "最低气温",
       "min_tmax": "最低昼温",
       "max_tmin": "最高夜温",
@@ -391,9 +397,15 @@
       "maximum_tmin": "最高夜温",
       "maximum_tavg": "最高均温",
       "maximum_tmax": "最高气温",
-      "max_days_tmin": "夜温最多天数",
-      "max_days_tavg": "均温最多天数",
-      "max_days_tmax": "昼温最多天数"
+      "max_days_tmin": "单冬/夏夜温最多阈值天数",
+      "max_days_tavg": "单冬/夏均温最多阈值天数",
+      "max_days_tmax": "单冬/夏昼温最多阈值天数",
+      "total_days_tmin": "夜温阈值天数总计",
+      "total_days_tavg": "均温阈值天数总计",
+      "total_days_tmax": "昼温阈值天数总计",
+      "valid_days_tmin": "夜温天数总计",
+      "valid_days_tavg": "均温天数总计",
+      "valid_days_tmax": "昼温天数总计"
     },
     "messages": {
       "copied_to_clipboard": "已复制到剪贴板!",
@@ -401,7 +413,7 @@
       "no_matching_stations": "未找到匹配的站点。",
       "no_stats_available": "无可用统计。",
       "no_period_data": "无可用冬/夏数据。",
-      "station_data_error": "找不到该站点或获取数据失败。请检查站点 ID 和网络连接。"
+      "station_data_error": "找不到该站点或获取数据失败。请检查站点ID或日期范围限制"
     },
     "details_page": {
       "title": "{station_name} - 详细记录",
@@ -410,7 +422,7 @@
       "header_tavg": "均温(℃)",
       "header_tmax": "昼温(℃)",
       "total_records": "记录总数: {count}",
-      "expected_total": "记录总数: {count} (预期: {expected})",
+      "expected_total": "有记录天数: {count} / {expected}",
       "copy_tsv": "复制表格(TSV)",
       "no_records": "在此范围内未找到记录。",
       "top_consecutive": "连续天数",

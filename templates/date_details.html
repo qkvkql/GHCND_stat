@@ -8,12 +8,35 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <style>
         .details-container {
-            max-width: 900px;
-            margin: 30px auto;
+            max-width: 1200px;
+            margin: 20px auto;
             background: white;
             padding: 25px;
             border-radius: 8px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+        }
+
+        h1 {
+            font-size: 1.8rem;
+            margin: 0;
+            color: #333;
+            text-align: left;
+        }
+
+        h2 {
+            font-size: 1.2rem;
+            margin: 10px 0 5px 0;
+            color: #666;
+            font-weight: normal;
+        }
+
+        h3 {
+            margin-top: 5px;
+            margin-bottom: 15px;
+            color: #333;
+            font-size: 1.1rem;
+            border-bottom: none;
+            font-weight: bold;
         }
 
         .header-row {
@@ -121,15 +144,18 @@
         .meta-item {
             display: inline-block;
             margin-right: 15px;
-            padding: 2px 6px;
-            background: #f1f1f1;
+            padding: 4px 8px;
+            background: white;
+            border: 1px dashed #bbb;
             border-radius: 4px;
             cursor: pointer;
-            transition: background 0.2s;
+            transition: all 0.2s;
+            color: #666;
         }
 
         .meta-item:hover {
-            background: #e0e0e0;
+            background: #f8f9fa;
+            border-color: #333;
             color: #000;
         }
 
@@ -258,10 +284,10 @@
             <table class="data-table" id="detailsTable">
                 <thead>
                     <tr>
-                        <th onclick="sortTable('date')">{{ t('details_page.header_date') }} &#8645;</th>
-                        <th onclick="sortTable('tmin')">{{ t('details_page.header_tmin') }} &#8645;</th>
-                        <th onclick="sortTable('tavg')">{{ t('details_page.header_tavg') }} &#8645;</th>
-                        <th onclick="sortTable('tmax')">{{ t('details_page.header_tmax') }} &#8645;</th>
+                        <th onclick="sortTable('date')">{{ t('details_page.header_date') }} &#8593;&#8595;</th>
+                        <th onclick="sortTable('tmin')">{{ t('details_page.header_tmin') }} &#8593;&#8595;</th>
+                        <th onclick="sortTable('tavg')">{{ t('details_page.header_tavg') }} &#8593;&#8595;</th>
+                        <th onclick="sortTable('tmax')">{{ t('details_page.header_tmax') }} &#8593;&#8595;</th>
                     </tr>
                 </thead>
                 <tbody>
