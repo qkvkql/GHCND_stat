@@ -242,6 +242,12 @@
                     <option value="12">{{ t('months.december') }}</option>
                 </select>
             </div>
+            <div>
+                <label for="startDateInput" style="font-weight:bold; color:#555;">{{ t('extreme_temps.starting_date_label') }}:</label>
+                <input type="text" id="startDateInput" placeholder="MM-DD" maxlength="5"
+                    style="padding:5px; border-radius:4px; border:1px solid #ccc; width: 80px;"
+                    oninput="handleStartDateInput()">
+            </div>
         </div>
 
         <div class="table-responsive">
@@ -316,6 +322,51 @@
             toast.textContent = message;
             toast.className = "toast show";
             setTimeout(function () { toast.className = toast.className.replace("show", ""); }, 3000);
+        }
+
+        function handleStartDateInput() {
+            const val = document.getElementById('startDateInput').value;
+            const regex = /^(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$/;
+            if (val.length === 5) {
+                if (regex.test(val)) {
+                    reorderTable(val);
+                } else {
+                    showToast("{{ t('extreme_temps.invalid_format_warning') }}");
+                }
+            }
+        }
+
+        function reorderTable(startMD) {
+            const table = document.getElementById("extremeTable");
+            const tbody = table.querySelector('tbody');
+            let rows = Array.from(tbody.querySelectorAll('tr:not([style*="display: none"])'));
+            
+            // If we are filtering, we only want to reorder visible rows, 
+            // but the requirement says "this MD... will be used to decide which row should be displayed as first row".
+            // Typically this applies to the whole dataset or the currently filtered set.
+            // Let's reorder ALL rows so that the logic remains consistent even if filters change.
+            let allRows = Array.from(tbody.querySelectorAll('tr'));
+            if (allRows.length <= 1) return;
+
+            // Find index of the starting MD
+            let startIndex = allRows.findIndex(r => r.cells[0].innerText.trim() === startMD);
+            
+            if (startIndex === -1) {
+                // If the exact MD is not found (e.g. Feb 29 in a non-leap year context or just missing),
+                // we could find the next available. But the prompt says "strictly restricted to this format".
+                // If it's valid format but not in table, just return or show warning.
+                showToast("Date " + startMD + " not found in data.");
+                return;
+            }
+
+            // Reorder: elements from startIndex to end, then 0 to startIndex-1
+            const reordered = [
+                ...allRows.slice(startIndex),
+                ...allRows.slice(0, startIndex)
+            ];
+
+            tbody.innerHTML = '';
+            reordered.forEach(r => tbody.appendChild(r));
         }
 
         function filterTable() {

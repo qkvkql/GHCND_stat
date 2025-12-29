@@ -95,7 +95,9 @@
       "header_max_tmin": "Max TMIN (Years)",
       "header_max_tmax": "Max TMAX (Years)",
       "header_count_tmin": "Count TMIN",
-      "header_count_tmax": "Count TMAX"
+      "header_count_tmax": "Count TMAX",
+      "starting_date_label": "Starting Date (MM-DD)",
+      "invalid_format_warning": "Invalid format! Please use MM-DD (e.g. 07-16)"
     },
     "thresholds": {
       "tmin_threshold": "TMIN Threshold",
@@ -472,7 +474,9 @@
       "header_max_tmin": "最高夜温",
       "header_max_tmax": "最高气温",
       "header_count_tmin": "夜温总计",
-      "header_count_tmax": "昼温总计"
+      "header_count_tmax": "昼温总计",
+      "starting_date_label": "起始日期",
+      "invalid_format_warning": "格式错误！请使用 MM-DD 格式 (如 07-16)"
     },
     "modal": {
       "select_period": "选择冬/夏",
