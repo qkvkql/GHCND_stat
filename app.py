@@ -1287,7 +1287,157 @@ def date_details():
                            streaks=streaks_data,
                            thresholds=thresholds,
                            expected_total=expected_total,
-                           station_info=station_info)
+                           station_info=station_info,
+                           period_mode=period_mode)
+
+@app.route('/period_stats')
+@auth_or_visitor_required
+def period_stats():
+    try:
+        station_id = request.args.get('station_id')
+        source = request.args.get('source', 'GHCND')
+        start_date = request.args.get('start_date')
+        end_date = request.args.get('end_date')
+        month_filter = request.args.get('month_filter')
+        day_filter = request.args.get('day_filter', '0')
+        period_mode = request.args.get('period', 'p1')
+        hemisphere = request.args.get('hemisphere', 'north')
+        
+        thresh_params = {
+            'TMIN': {'val': request.args.get('tmin_val'), 'dir': request.args.get('tmin_dir')},
+            'TAVG': {'val': request.args.get('tavg_val'), 'dir': request.args.get('tavg_dir')},
+            'TMAX': {'val': request.args.get('tmax_val'), 'dir': request.args.get('tmax_dir')}
+        }
+
+        # Station Name and Info
+        station_name = station_id
+        station_info = {'lat': '-', 'lon': '-', 'elev': '-'}
+        st_df = GHCND_DF if source == 'GHCND' else GSOD_DF
+        if st_df is not None:
+            row = st_df[st_df['ID'] == station_id]
+            if not row.empty:
+                station_name = f"{station_id} - {row.iloc[0]['NAME']}"
+                station_info['lat'] = row.iloc[0]['LAT']
+                station_info['lon'] = row.iloc[0]['LON']
+                station_info['elev'] = row.iloc[0]['ELEV']
+
+        df = fetch_and_clean_data(source, station_id, start_date, end_date)
+        if df.empty:
+            return render_template('period_stats.html', station_name=station_name, station_info=station_info, 
+                                   period_summary=None, period_stats=[], error_msg=get_translation('messages.station_data_error'))
+
+        # Apply Month/Day filters if any (though usually we want the full range for period stats)
+        if month_filter and month_filter != "0":
+            if month_filter == "winter_3": df = df[df['DATE'].dt.month.isin([12, 1, 2])]
+            elif month_filter == "summer_3": df = df[df['DATE'].dt.month.isin([6, 7, 8])]
+            else: 
+                df = df[df['DATE'].dt.month == int(month_filter)]
+                if day_filter and day_filter != "0":
+                    df = df[df['DATE'].dt.day == int(day_filter)]
+
+        def get_val_and_dates(sub_df, method='min'):
+            if sub_df.empty: return {'val': '-', 'dates': []}
+            target_val = sub_df['DATA_VALUE'].min() if method == 'min' else sub_df['DATA_VALUE'].max()
+            matches = sub_df[sub_df['DATA_VALUE'] == target_val]['DATE']
+            return {'val': float(target_val), 'dates': matches.dt.strftime('%Y-%m-%d').tolist()}
+
+        # Period Stats Calculation (Adapted from get_data)
+        df['Season_Year'] = df['DATE'].dt.year
+        if period_mode == 'p1': 
+            mask = (df['DATE'].dt.month < 7) | ((df['DATE'].dt.month == 7) & (df['DATE'].dt.day < 16))
+            df.loc[mask, 'Season_Year'] = df['Season_Year'] - 1
+        else: 
+            mask = (df['DATE'].dt.month == 1) & (df['DATE'].dt.day < 16)
+            df.loc[mask, 'Season_Year'] = df['Season_Year'] - 1
+
+        period_stats_list = []
+        list_min_tmin, list_min_tmax, list_max_tmin, list_max_tmax = [], [], [], []
+        count_total, count_used_min_tmin, count_used_min_tmax, count_used_max_tmin, count_used_max_tmax = 0, 0, 0, 0, 0
+        unique_seasons = sorted(df['Season_Year'].unique(), reverse=True)
+
+        for year in unique_seasons:
+            season_df = df[df['Season_Year'] == year]
+            if season_df.empty: continue
+            count_total += 1
+            def get_thresh_count(elem):
+                t_val = thresh_params[elem]['val']
+                t_dir = thresh_params[elem]['dir']
+                vals = season_df[season_df['ELEMENT'] == elem]['DATA_VALUE']
+                if vals.empty or t_val is None or t_val == "": return 0
+                if t_dir == 'lte': return int((vals <= float(t_val)).sum())
+                else: return int((vals >= float(t_val)).sum())
+            s_tmin_df = season_df[season_df['ELEMENT'] == 'TMIN']
+            s_tmax_df = season_df[season_df['ELEMENT'] == 'TMAX']
+            min_tmin_obj = get_val_and_dates(s_tmin_df, 'min')
+            max_tmin_obj = get_val_and_dates(s_tmin_df, 'max')
+            min_tmax_obj = get_val_and_dates(s_tmax_df, 'min')
+            max_tmax_obj = get_val_and_dates(s_tmax_df, 'max')
+            
+            count_djf_tmin = season_df[(season_df['DATE'].dt.month.isin([12, 1, 2])) & (season_df['ELEMENT'] == 'TMIN')].shape[0]
+            count_djf_tmax = season_df[(season_df['DATE'].dt.month.isin([12, 1, 2])) & (season_df['ELEMENT'] == 'TMAX')].shape[0]
+            count_jja_tmin = season_df[(season_df['DATE'].dt.month.isin([6, 7, 8])) & (season_df['ELEMENT'] == 'TMIN')].shape[0]
+            count_jja_tmax = season_df[(season_df['DATE'].dt.month.isin([6, 7, 8])) & (season_df['ELEMENT'] == 'TMAX')].shape[0]
+            
+            season_cdt1 = ((hemisphere == 'north' and period_mode == 'p1') or (hemisphere == 'south' and period_mode == 'p2'))
+            season_cdt2 = ((hemisphere == 'north' and period_mode == 'p2') or (hemisphere == 'south' and period_mode == 'p1'))
+            
+            valid_min_tmin = True
+            if season_cdt2: valid_min_tmin = False
+            if hemisphere == 'north' and period_mode == 'p1' and count_djf_tmin < 60: valid_min_tmin = False
+            elif hemisphere == 'south' and period_mode == 'p2' and count_jja_tmin < 60: valid_min_tmin = False
+            if valid_min_tmin and min_tmin_obj['val'] != '-': list_min_tmin.append(min_tmin_obj['val']); count_used_min_tmin += 1
+            
+            valid_min_tmax = True
+            if season_cdt2: valid_min_tmax = False
+            if hemisphere == 'north' and period_mode == 'p1' and count_djf_tmax < 60: valid_min_tmax = False
+            elif hemisphere == 'south' and period_mode == 'p2' and count_jja_tmax < 60: valid_min_tmax = False
+            if valid_min_tmax and min_tmax_obj['val'] != '-': list_min_tmax.append(min_tmax_obj['val']); count_used_min_tmax += 1
+            
+            valid_max_tmin = True
+            if season_cdt1: valid_max_tmin = False
+            if hemisphere == 'north' and period_mode == 'p2' and count_jja_tmin < 60: valid_max_tmin = False
+            elif hemisphere == 'south' and period_mode == 'p1' and count_djf_tmin < 60: valid_max_tmin = False
+            if valid_max_tmin and max_tmin_obj['val'] != '-': list_max_tmin.append(max_tmin_obj['val']); count_used_max_tmin += 1
+            
+            valid_max_tmax = True
+            if season_cdt1: valid_max_tmax = False
+            if hemisphere == 'north' and period_mode == 'p2' and count_jja_tmax < 60: valid_max_tmax = False
+            elif hemisphere == 'south' and period_mode == 'p1' and count_djf_tmax < 60: valid_max_tmax = False
+            if valid_max_tmax and max_tmax_obj['val'] != '-': list_max_tmax.append(max_tmax_obj['val']); count_used_max_tmax += 1
+            
+            count_actual = season_df['DATE'].nunique()
+            count_expected = 0
+            try:
+                if period_mode == 'p1': s_date, e_date = datetime(year, 7, 16), datetime(year + 1, 7, 15)
+                else: s_date, e_date = datetime(year, 1, 16), datetime(year + 1, 1, 15)
+                count_expected = (e_date - s_date).days + 1
+            except: pass
+
+            period_stats_list.append({
+                'range': f"{year}-{year+1}",
+                'count_actual': count_actual,
+                'count_expected': count_expected,
+                'min_tmin': min_tmin_obj, 'max_tmin': max_tmin_obj, 'min_tmax': min_tmax_obj, 'max_tmax': max_tmax_obj,
+                'cnt_tmin': get_thresh_count('TMIN'), 'cnt_tavg': get_thresh_count('TAVG'), 'cnt_tmax': get_thresh_count('TMAX')
+            })
+
+        def get_avg_data(lst, used_count):
+            avg = float(round(sum(lst) / len(lst), 2)) if lst else '-'
+            return {'val': avg, 'used': used_count, 'total': count_total}
+
+        period_summary = {
+            'avg_min_tmin': get_avg_data(list_min_tmin, count_used_min_tmin),
+            'avg_min_tmax': get_avg_data(list_min_tmax, count_used_min_tmax),
+            'avg_max_tmin': get_avg_data(list_max_tmin, count_used_max_tmin),
+            'avg_max_tmax': get_avg_data(list_max_tmax, count_used_max_tmax)
+        }
+
+        return render_template('period_stats.html', station_name=station_name, station_info=station_info, 
+                               period_summary=period_summary, period_stats=period_stats_list, source=source, station_id=station_id,
+                               period_mode=period_mode)
+    except Exception as e:
+        import traceback; traceback.print_exc()
+        return str(e), 500
 
 @app.route('/extreme_temps')
 @auth_or_visitor_required

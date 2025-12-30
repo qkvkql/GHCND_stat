@@ -274,7 +274,7 @@ function updateRecordsList() {
     const limitVal = document.getElementById('recordLimitSelect').value;
     const limitLabel = document.getElementById('limitLabel');
     if (limitLabel) limitLabel.textContent = limitVal;
-    fetchData();
+    fetchData(true); // true means KEEP manual sort
 }
 
 function copyRecordsTable() {
@@ -510,14 +510,14 @@ function triggerServerSort(columnName) {
     document.getElementById('sortingLoading').classList.remove('hidden');
     if (currentSortBy === columnName) { currentSortDir = (currentSortDir === 'asc') ? 'desc' : 'asc'; }
     else { currentSortBy = columnName; currentSortDir = 'desc'; }
-    fetchData();
+    fetchData(true);
 }
 function triggerMultiSort(columnName) {
     const loader = document.getElementById('multiStationLoading');
     if (loader) loader.classList.remove('hidden');
     if (multiSortBy === columnName) { multiSortDir = (multiSortDir === 'asc') ? 'desc' : 'asc'; }
     else { multiSortBy = columnName; multiSortDir = 'asc'; }
-    fetchData();
+    fetchData(true);
 }
 function sortPeriodTable(column) {
     if (periodSortCol === column) { periodSortDir = (periodSortDir === 'asc') ? 'desc' : 'asc'; }
@@ -545,8 +545,12 @@ function syncPeriodColumns() {
 }
 function renderPeriodTable() {
     const tbody = document.querySelector('#periodStatsTable tbody');
+    if (!tbody) return;
     tbody.innerHTML = '';
-    const setHeaderDisplay = (id, visible) => { document.getElementById(id).style.display = visible ? '' : 'none'; };
+    const setHeaderDisplay = (id, visible) => {
+        const el = document.getElementById(id);
+        if (el) el.style.display = visible ? '' : 'none';
+    };
     setHeaderDisplay('th_min_tmin', periodColVisibility.min_tmin);
     setHeaderDisplay('th_min_tmax', periodColVisibility.min_tmax);
     setHeaderDisplay('th_max_tmin', periodColVisibility.max_tmin);
@@ -621,7 +625,7 @@ function renderPeriodTable() {
 }
 
 // --- MAIN FETCH ---
-async function fetchData() {
+async function fetchData(keepSort = false) {
     const loading = document.getElementById('loading');
     const sortingLoading = document.getElementById('sortingLoading');
     const multiStationLoading = document.getElementById('multiStationLoading');
@@ -655,6 +659,17 @@ async function fetchData() {
     const seasonMode = document.querySelector('input[name="season"]:checked').value;
     const hemisphere = document.querySelector('input[name="hemisphere"]:checked').value;
     const periodMode = getPeriodModeFromSeason(seasonMode, hemisphere);
+
+    // Dynamic Default Sort Logic
+    if (!keepSort) {
+        if (seasonMode === 'winter') {
+            currentSortBy = 'TMIN';
+            currentSortDir = 'asc';
+        } else {
+            currentSortBy = 'TMAX';
+            currentSortDir = 'desc';
+        }
+    }
 
     const payload = {
         station_id: finalStationId,
@@ -730,6 +745,7 @@ async function fetchData() {
 
         const updateSummaryCell = (id, data) => {
             const el = document.getElementById(id);
+            if (!el) return;
             if (data.val === '-' || data.val === undefined || data.val === null) {
                 el.innerHTML = '-';
                 el.classList.remove('copy-cell');

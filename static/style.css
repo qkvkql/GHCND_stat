@@ -511,7 +511,7 @@ tr:nth-child(even) {
     color: #fff;
     text-align: center !important;
     border-radius: 6px;
-    padding: 5px;
+    padding: 2px;
     position: absolute;
     bottom: 125%;
     left: 50%;

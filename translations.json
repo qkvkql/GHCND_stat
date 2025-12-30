@@ -33,7 +33,8 @@
       "period_details": "Period Details (By Range)",
       "record_list": "Record List",
       "multiple_stations": "Multiple Weather Stations",
-      "multiple_stats": "Multiple Stations Statistics (For Stations in Part 4)"
+      "multiple_stats": "Multiple Stations Statistics (For Stations in Part 4)",
+      "averages_suffix": " Averages (Summary)"
     },
     "params": {
       "data_source": "Data Source:",
@@ -58,12 +59,13 @@
     "links": {
       "ghcnd_stations_list": "GHCND stations list",
       "gsod_stations_list": "GSOD stations list",
-      "view_extreme_temps": "View Daily Extreme Temperatures"
+      "view_extreme_temps": "View Daily Extreme Temperatures",
+      "view_period_stats": "View Period Stats"
     },
     "months": {
       "full_year": "Full Year",
-      "winter_3": "Winter 3 Months (Dec-Feb)",
-      "summer_3": "Summer 3 Months (Jun-Aug)",
+      "winter_3": "12~2",
+      "summer_3": "6~8",
       "january": "January",
       "february": "February",
       "march": "March",
@@ -97,7 +99,8 @@
       "header_count_tmin": "Count TMIN",
       "header_count_tmax": "Count TMAX",
       "starting_date_label": "Starting Date (MM-DD)",
-      "invalid_format_warning": "Invalid format! Please use MM-DD (e.g. 07-16)"
+      "invalid_format_warning": "Invalid format! Please use MM-DD (e.g. 07-16)",
+      "date_not_found": "Date {date} not found in this station's record."
     },
     "thresholds": {
       "tmin_threshold": "TMIN Threshold",
@@ -230,7 +233,20 @@
       "day": "{count} day",
       "days": "{count} days",
       "info_period": "Period: {value}",
-      "info_list": "List: {value}"
+      "info_list": "List: {value}",
+      "starting_date_label": "Starting Date (YYYY-MM-DD)",
+      "starting_date_placeholder": "YYYY-MM-DD",
+      "invalid_format_warning": "Invalid format! Please use YYYY-MM-DD (e.g. 1968-10-10)",
+      "date_not_found": "Date {date} not found in this range.",
+      "filtered_stats_title": "Statistics for Filtered Range",
+      "stat_min": "Min",
+      "stat_avg": "Avg",
+      "stat_max": "Max",
+      "stat_valid_days": "Valid Days",
+      "stat_expected_days": "Expected Days",
+      "copy_success": "Table copied to clipboard!",
+      "range_filter_title": "Filter by Range:",
+      "consecutive_days_title": "Consecutive Days (Streaks)"
     },
     "metrics": {
       "tmin": "TMIN",
@@ -274,9 +290,10 @@
       "global_statistics": "概览",
       "period_averages": "冬均最低/夏均最高",
       "period_details": "冬/夏",
-      "record_list": "逐日气温",
+      "record_list": "样本",
       "multiple_stations": "多站列表",
-      "multiple_stats": "多站单项对比"
+      "multiple_stats": "多站单项对比",
+      "averages_suffix_zh": "平均"
     },
     "params": {
       "data_source": "数据源:",
@@ -301,7 +318,8 @@
     "links": {
       "ghcnd_stations_list": "GHCND站点列表",
       "gsod_stations_list": "GSOD站点列表",
-      "view_extreme_temps": "分日期极端气温"
+      "view_extreme_temps": "分日期极端气温",
+      "view_period_stats": "冬/夏"
     },
     "thresholds": {
       "tmin_threshold": "夜温阈值",
@@ -399,9 +417,9 @@
       "maximum_tmin": "最高夜温",
       "maximum_tavg": "最高均温",
       "maximum_tmax": "最高气温",
-      "max_days_tmin": "单冬/夏夜温最多阈值天数",
-      "max_days_tavg": "单冬/夏均温最多阈值天数",
-      "max_days_tmax": "单冬/夏昼温最多阈值天数",
+      "max_days_tmin": "单冬/夏_夜温最多阈值天数",
+      "max_days_tavg": "单冬/夏_均温最多阈值天数",
+      "max_days_tmax": "单冬/夏_昼温最多阈值天数",
       "total_days_tmin": "夜温阈值天数总计",
       "total_days_tavg": "均温阈值天数总计",
       "total_days_tmax": "昼温阈值天数总计",
@@ -432,7 +450,20 @@
       "day": "{count} 天",
       "days": "{count} 天",
       "info_period": "冬/夏: {value}",
-      "info_list": "列表: {value}"
+      "info_list": "列表: {value}",
+      "starting_date_label": "起始日期",
+      "starting_date_placeholder": "YYYY-MM-DD",
+      "invalid_format_warning": "格式错误！请使用 YYYY-MM-DD 格式 (如 1968-10-10)",
+      "date_not_found": "在此范围内未找到日期 {date}。",
+      "filtered_stats_title": "动态统计",
+      "stat_min": "最小值",
+      "stat_avg": "平均值",
+      "stat_max": "最大值",
+      "stat_valid_days": "有记录天数",
+      "stat_expected_days": "总天数",
+      "copy_success": "表格已成功复制到剪贴板！",
+      "range_filter_title": "日期范围:",
+      "consecutive_days_title": "连续记录(全周期)"
     },
     "metrics": {
       "tmin": "夜温",
@@ -441,8 +472,8 @@
     },
     "months": {
       "full_year": "全年",
-      "winter_3": "冬季3个月(12-2)",
-      "summer_3": "夏季3个月(6-8)",
+      "winter_3": "12~2",
+      "summer_3": "6~8",
       "january": "一月",
       "february": "二月",
       "march": "三月",
@@ -476,7 +507,8 @@
       "header_count_tmin": "夜温总计",
       "header_count_tmax": "昼温总计",
       "starting_date_label": "起始日期",
-      "invalid_format_warning": "格式错误！请使用 MM-DD 格式 (如 07-16)"
+      "invalid_format_warning": "格式错误！请使用 MM-DD 格式 (如 07-16)",
+      "date_not_found": "在该站点的记录中未找到日期 {date}。"
     },
     "modal": {
       "select_period": "选择冬/夏",

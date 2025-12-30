@@ -221,11 +221,16 @@
                 {% endif %}
 
                 {% if query_type == 'period' %}
-                <h2>
-                    {{ t('details_page.info_period', value=('<span class="period-highlight">' ~ value ~ '</span>')) |
-                    safe }}
-                </h2>
-                {% else %}
+                <div style="margin-top: 5px; margin-bottom: 20px;">
+                    <p style="font-size: 1.1rem; color: #555;">
+                        <strong>
+                            {% if period_mode == 'p1' %}{{ t('season.winter') }}{% else %}{{ t('season.summer') }}{%
+                            endif %}:
+                        </strong>
+                        {{ value }}
+                    </p>
+                </div>
+                {% elif query_type == 'list' %}
                 <h2>{{ t('details_page.info_' + query_type, value=value) if query_type else '' }}</h2>
                 {% endif %}
                 <h3 style="margin-top: 5px; color: #555; font-size: 1rem;">
@@ -252,33 +257,131 @@
         </div>
         {% endif %}
 
-        <div class="controls">
-            <button class="copy-btn" onclick="copyTable()">{{ t('details_page.copy_tsv') }}</button>
+        <div class="controls"
+            style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                <label for="startDateInput" style="font-weight:bold; color:#555;">{{
+                    t('details_page.starting_date_label') }}:</label>
+                <input type="text" id="startDateInput" placeholder="{{ t('details_page.starting_date_placeholder') }}"
+                    maxlength="10" style="padding:6px; border-radius:4px; border:1px solid #ccc; width: 120px;"
+                    oninput="handleStartingDateInput()">
+
+                {% if query_type == 'period' %}
+                <div style="display: flex; align-items: center; gap: 5px; margin-left: 10px;">
+                    <label for="monthFilter" style="font-weight:bold; color:#555;">{{
+                        t('details_page.range_filter_title') }}</label>
+                    <select id="monthFilter" onchange="applyFilters()"
+                        style="padding:6px; border-radius:4px; border:1px solid #ccc;">
+                        <option value="all">{{ t('months.full_year') }}</option>
+                        {% if period_mode == 'p1' %}
+                        <option value="winter_3">{{ t('months.winter_3') }}</option>
+                        {% elif period_mode == 'p2' %}
+                        <option value="summer_3">{{ t('months.summer_3') }}</option>
+                        {% endif %}
+                        <option value="01">{{ t('months.january') }}</option>
+                        <option value="02">{{ t('months.february') }}</option>
+                        <option value="03">{{ t('months.march') }}</option>
+                        <option value="04">{{ t('months.april') }}</option>
+                        <option value="05">{{ t('months.may') }}</option>
+                        <option value="06">{{ t('months.june') }}</option>
+                        <option value="07">{{ t('months.july') }}</option>
+                        <option value="08">{{ t('months.august') }}</option>
+                        <option value="09">{{ t('months.september') }}</option>
+                        <option value="10">{{ t('months.october') }}</option>
+                        <option value="11">{{ t('months.november') }}</option>
+                        <option value="12">{{ t('months.december') }}</option>
+                    </select>
+                </div>
+                {% endif %}
+            </div>
         </div>
 
-        {% if streaks and records|length > 10 %}
-        <div style="display: flex; gap: 20px; margin-bottom: 20px; flex-wrap: wrap;">
-            {% for metric, list in streaks.items() %}
-            <div
-                style="flex: 1; min-width: 250px; background: #f9f9f9; padding: 10px; border-radius: 5px; border: 1px solid #eee;">
-                <h4
-                    style="margin: 0 0 10px 0; font-size: 1rem; color: #333; border-bottom: 2px solid #ddd; padding-bottom: 5px;">
-                    {% set symbol_map = {'lte': ' <= ', 'gte': ' >= ' } %} {{ t('metrics.' + metric|lower) }} {{
-                        symbol_map[thresholds[metric]['dir']|trim] }} {{ thresholds[metric]['val'] }} {{
-                        t('details_page.top_consecutive') }} </h4>
-                        {% if list %}
-                        <ol style="margin: 0; padding-left: 20px; font-size: 0.9rem;">
-                            {% for item in list %}
-                            <li style="margin-bottom: 4px;">{{ item }}</li>
-                            {% endfor %}
-                        </ol>
-                        {% else %}
-                        <p style="margin: 0; font-size: 0.9rem; color: #888;">{{ t('details_page.no_streaks') }}</p>
-                        {% endif %}
+        {% if query_type == 'period' %}
+        <div id="filteredStatsContainer" style="margin-bottom: 25px;">
+            <h3>{{ t('details_page.filtered_stats_title') }}</h3>
+            <div class="table-responsive">
+                <table class="stats-table" id="filteredStatsTable">
+                    <thead>
+                        <tr>
+                            <th>{{ t('tables.type') }}</th>
+                            <th>{{ t('details_page.stat_min') }}(℃)</th>
+                            <th>{{ t('details_page.stat_avg') }}(℃)</th>
+                            <th>{{ t('details_page.stat_max') }}(℃)</th>
+                            <th>{{ t('details_page.stat_valid_days') }}</th>
+                            <th>{{ t('details_page.stat_expected_days') }}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr data-element="TMIN">
+                            <td><strong>{{ t('metrics.tmin') }}</strong></td>
+                            <td class="stat-min">-</td>
+                            <td class="stat-avg">-</td>
+                            <td class="stat-max">-</td>
+                            <td class="stat-valid">-</td>
+                            <td class="stat-expected">-</td>
+                        </tr>
+                        <tr data-element="TAVG">
+                            <td><strong>{{ t('metrics.tavg') }}</strong></td>
+                            <td class="stat-min">-</td>
+                            <td class="stat-avg">-</td>
+                            <td class="stat-max">-</td>
+                            <td class="stat-valid">-</td>
+                            <td class="stat-expected">-</td>
+                        </tr>
+                        <tr data-element="TMAX">
+                            <td><strong>{{ t('metrics.tmax') }}</strong></td>
+                            <td class="stat-min">-</td>
+                            <td class="stat-avg">-</td>
+                            <td class="stat-max">-</td>
+                            <td class="stat-valid">-</td>
+                            <td class="stat-expected">-</td>
+                        </tr>
+                    </tbody>
+                </table>
             </div>
-            {% endfor %}
         </div>
         {% endif %}
+
+        {% if streaks and records|length > 10 %}
+        <div class="collapsible-wrapper" id="streaksCollapsible">
+            <div class="collapsible-header" onclick="toggleSection('streaksCollapsible')">
+                <strong style="font-size: 1.1rem; color: #333;">{{ t('details_page.consecutive_days_title') }}</strong>
+                <span class="collapsible-icon">▼</span>
+            </div>
+            <div class="collapsible-content">
+                <div class="collapsible-inner">
+                    <div style="display: flex; gap: 20px; margin-bottom: 0px; flex-wrap: wrap;">
+                        {% for metric, list in streaks.items() %}
+                        <div
+                            style="flex: 1; min-width: 250px; background: #f9f9f9; padding: 10px; border-radius: 5px; border: 1px solid #eee;">
+                            <h4
+                                style="margin: 0 0 10px 0; font-size: 1rem; color: #333; border-bottom: 2px solid #ddd; padding-bottom: 5px;">
+                                {% set symbol_map = {'lte': ' <= ', ' gte': ' >= ' } %} {{ t('metrics.' + metric|lower)
+                                    }} {{ symbol_map[thresholds[metric]['dir']|trim] }} {{ thresholds[metric]['val'] }}
+                                    {{ t('details_page.top_consecutive') }} </h4>
+                                    {% if list %}
+                                    <ol style="margin: 0; padding-left: 20px; font-size: 0.9rem;">
+                                        {% for item in list %}
+                                        <li style="margin-bottom: 4px;">{{ item }}</li>
+                                        {% endfor %}
+                                    </ol>
+                                    {% else %}
+                                    <p style="margin: 0; font-size: 0.9rem; color: #888;">{{
+                                        t('details_page.no_streaks') }}</p>
+                                    {% endif %}
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div style="margin-bottom: 20px;"></div>
+        {% endif %}
+
+        <div style="margin-bottom: 15px; text-align: right;">
+            <button class="copy-btn" onclick="copyTable()" style="padding: 10px 20px; font-size: 1rem;">{{
+                t('details_page.copy_tsv') }}</button>
+        </div>
 
         <div class="table-responsive" style="max-height: none;">
             <table class="data-table" id="detailsTable">
@@ -321,6 +424,176 @@
     <script>
         let sortCol = 'date';
         let sortDir = 'asc';
+
+        function toggleSection(sectionId) {
+            const section = document.getElementById(sectionId);
+            if (section) {
+                section.classList.toggle('active');
+            }
+        }
+
+        function handleStartingDateInput() {
+            const val = document.getElementById('startDateInput').value;
+            // Strict regex for YYYY-MM-DD
+            const regex = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$/;
+            if (val.length === 10) {
+                if (regex.test(val)) {
+                    reorderTable(val);
+                } else {
+                    showToast("{{ t('details_page.invalid_format_warning') }}");
+                }
+            }
+        }
+
+        function reorderTable(startDate) {
+            const table = document.getElementById("detailsTable");
+            const tbody = table.querySelector('tbody');
+            let allRows = Array.from(tbody.querySelectorAll('tr'));
+            if (allRows.length <= 1) return;
+
+            // Sort chronologically first to ensure stable base order
+            allRows.sort((a, b) => {
+                let valA = a.cells[0].innerText.trim();
+                let valB = b.cells[0].innerText.trim();
+                return valA.localeCompare(valB);
+            });
+
+            // If a filter is active, we should only work with visible rows?
+            // User said: "once I input a valid date string... it will set the inputed date as the first row... which completed a closed cycle through the current date range."
+            // This implies the full set should be ordered, but if filtered, maybe just the visible ones?
+            // Let's reorder all rows, then filtering will apply visibility.
+
+            let startIndex = allRows.findIndex(r => r.cells[0].innerText.trim() === startDate);
+
+            if (startIndex === -1) {
+                let msg = "{{ t('details_page.date_not_found', date='___DATE___') }}".replace('___DATE___', startDate);
+                showToast(msg);
+                return;
+            }
+
+            const reordered = [
+                ...allRows.slice(startIndex),
+                ...allRows.slice(0, startIndex)
+            ];
+
+            tbody.innerHTML = '';
+            reordered.forEach(r => tbody.appendChild(r));
+        }
+
+        function applyFilters() {
+            const monthVal = document.getElementById('monthFilter').value;
+            const table = document.getElementById('detailsTable');
+            const tbody = table.querySelector('tbody');
+            const rows = Array.from(tbody.querySelectorAll('tr'));
+
+            // Default sort by date ASC when range is selected
+            rows.sort((a, b) => {
+                let valA = a.cells[0].innerText.trim();
+                let valB = b.cells[0].innerText.trim();
+                return valA.localeCompare(valB);
+            });
+
+            rows.forEach(row => {
+                const dateText = row.cells[0].innerText.trim();
+                const month = dateText.split('-')[1]; // YYYY-MM-DD -> MM
+
+                let show = false;
+                if (monthVal === 'all') {
+                    show = true;
+                } else if (monthVal === 'winter_3') {
+                    show = ['12', '01', '02'].includes(month);
+                } else if (monthVal === 'summer_3') {
+                    show = ['06', '07', '08'].includes(month);
+                } else {
+                    show = (month === monthVal);
+                }
+
+                row.style.display = show ? '' : 'none';
+            });
+
+            // Re-append rows in sorted order
+            tbody.innerHTML = '';
+            rows.forEach(r => tbody.appendChild(r));
+
+            // Note: If start date reordering was active, it gets reset by chronological sort here.
+            // This matches "sorted by date asc in default" requirement when range is selected.
+
+            if (document.getElementById('filteredStatsTable')) {
+                updateFilteredStats(rows, monthVal);
+            }
+        }
+
+        function updateFilteredStats(allRows, monthVal) {
+            const table = document.getElementById('filteredStatsTable');
+            const metrics = ['TMIN', 'TAVG', 'TMAX'];
+
+            // 1. Calculate Expected Days
+            const periodValue = "{{ value }}"; // e.g. "1987-1988"
+            const periodMode = "{{ period_mode }}"; // "p1" or "p2"
+            let expectedCount = 0;
+            try {
+                const year1 = parseInt(periodValue.split('-')[0]);
+                const year2 = parseInt(periodValue.split('-')[1]);
+                let startDt, endDt;
+                if (periodMode === 'p1') {
+                    startDt = new Date(year1, 6, 16); // Month is 0-indexed, so 6 is July
+                    endDt = new Date(year2, 6, 15);
+                } else {
+                    startDt = new Date(year1, 0, 16);
+                    endDt = new Date(year2, 0, 15);
+                }
+
+                for (let d = new Date(startDt); d <= endDt; d.setDate(d.getDate() + 1)) {
+                    const m = (d.getMonth() + 1).toString().padStart(2, '0');
+                    let match = false;
+                    if (monthVal === 'all') match = true;
+                    else if (monthVal === 'winter_3') match = ['12', '01', '02'].includes(m);
+                    else if (monthVal === 'summer_3') match = ['06', '07', '08'].includes(m);
+                    else match = (m === monthVal);
+                    if (match) expectedCount++;
+                }
+            } catch (e) { console.error("Error calculating expected days", e); }
+
+            // 2. Loop through metrics
+            metrics.forEach((mName, idx) => {
+                const row = table.querySelector(`tr[data-element="${mName}"]`);
+                const cellIdx = idx + 1; // TMIN=1, TAVG=2, TMAX=3 in table rows
+
+                let vals = [];
+                allRows.forEach(r => {
+                    if (r.style.display === 'none') return;
+                    const txt = r.cells[cellIdx].innerText.trim();
+                    if (txt !== '-' && !isNaN(txt)) {
+                        vals.push(parseFloat(txt));
+                    }
+                });
+
+                if (vals.length > 0) {
+                    const min = Math.min(...vals);
+                    const max = Math.max(...vals);
+                    const avg = (vals.reduce((a, b) => a + b, 0) / vals.length).toFixed(2);
+
+                    row.querySelector('.stat-min').innerText = min;
+                    row.querySelector('.stat-avg').innerText = avg;
+                    row.querySelector('.stat-max').innerText = max;
+                    row.querySelector('.stat-valid').innerText = vals.length;
+                    row.querySelector('.stat-expected').innerText = expectedCount;
+                } else {
+                    row.querySelector('.stat-min').innerText = '-';
+                    row.querySelector('.stat-avg').innerText = '-';
+                    row.querySelector('.stat-max').innerText = '-';
+                    row.querySelector('.stat-valid').innerText = 0;
+                    row.querySelector('.stat-expected').innerText = expectedCount;
+                }
+            });
+        }
+
+        // Call applyFilters on load if period mode to show stats for "All"
+        window.addEventListener('DOMContentLoaded', () => {
+            if ("{{ query_type }}" === "period") {
+                applyFilters();
+            }
+        });
 
         function sortTable(column) {
             const table = document.getElementById('detailsTable');
@@ -376,21 +649,25 @@
 
         function copyTable() {
             const table = document.getElementById('detailsTable');
-            let tsv = [];
+            let tsv = '';
 
-            // Header
-            const headers = Array.from(table.querySelectorAll('thead th')).map(th => th.innerText.replace(' \u21c5', '').trim());
-            tsv.push(headers.join('\t'));
+            // Get headers
+            const headers = Array.from(table.querySelectorAll('thead th'))
+                .map(th => th.innerText.replace(' \u21c5', '').trim());
+            tsv += headers.join('\t') + '\n';
 
-            // Rows
-            const rows = table.querySelectorAll('tbody tr');
+            // Get visible rows
+            const rows = Array.from(table.querySelectorAll('tbody tr'))
+                .filter(tr => tr.style.display !== 'none');
+
             rows.forEach(tr => {
-                const cells = Array.from(tr.querySelectorAll('td')).map(td => td.innerText.trim());
-                if (cells.length > 0) tsv.push(cells.join('\t'));
+                const cells = Array.from(tr.querySelectorAll('td'))
+                    .map(td => td.innerText.trim());
+                tsv += cells.join('\t') + '\n';
             });
 
-            navigator.clipboard.writeText(tsv.join('\n')).then(() => {
-                showToast("{{ t('messages.copied_to_clipboard') }}");
+            navigator.clipboard.writeText(tsv).then(() => {
+                showToast("{{ t('details_page.copy_success') }}");
             });
         }
 

@@ -360,26 +360,6 @@
             <div id="errorMsg" class="error"></div>
         </div>
 
-        <!-- NEW: EXTREME TEMPERATURES LINK -->
-        <div class="section" style="text-align: center; padding: 15px;">
-            <a href="#" onclick="openExtremeTemps(); return false;"
-                style="font-size: 1.1rem; font-weight: bold; color: #007bff; text-decoration: none;">
-                {{ t('links.view_extreme_temps') }} &rarr;
-            </a>
-            <script>
-                function openExtremeTemps() {
-                    const sid = document.getElementById('stationId').value;
-                    const ds = document.getElementById('dataSource').value;
-                    let season = 'winter';
-                    // Deduced from checkboxes or defaults?
-                    const seasonEls = document.getElementsByName('season');
-                    for (let el of seasonEls) { if (el.checked) season = el.value; }
-
-                    const url = `/extreme_temps?station_id=${sid}&source=${ds}&season=${season}`;
-                    window.open(url, '_blank');
-                }
-            </script>
-        </div>
 
         <!-- PART 2: STATISTICS -->
         <!-- PART 2: STATISTICS -->
@@ -435,101 +415,16 @@
             </div>
         </div>
 
-        <div class="section">
-            <div class="collapsible-wrapper" id="periodAvgSection">
-                <div class="collapsible-header" onclick="toggleSection('periodAvgSection')">
-                    <h2>{{ t('sections.period_averages') }}</h2>
-                    <span class="collapsible-icon">▼</span>
-                </div>
-                <div class="collapsible-content">
-                    <div class="table-responsive">
-                        <table class="stats-table" id="periodAvgTable">
-                            <thead>
-                                <tr>
-                                    <th>{{ t('tables.avg_min_tmin_period') }}<br><span class="header-note">{{
-                                            t('tables.val_used_total') }}</span></th>
-                                    <th>{{ t('tables.avg_min_tmax_period') }}<br><span class="header-note">{{
-                                            t('tables.val_used_total') }}</span></th>
-                                    <th>{{ t('tables.avg_max_tmin_period') }}<br><span class="header-note">{{
-                                            t('tables.val_used_total') }}</span></th>
-                                    <th>{{ t('tables.avg_max_tmax_period') }}<br><span class="header-note">{{
-                                            t('tables.val_used_total') }}</span></th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td id="sum-avg-min-tmin" class="summary-cell">-</td>
-                                    <td id="sum-avg-min-tmax" class="summary-cell">-</td>
-                                    <td id="sum-avg-max-tmin" class="summary-cell">-</td>
-                                    <td id="sum-avg-max-tmax" class="summary-cell">-</td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="section">
-            <div class="collapsible-wrapper" id="periodDetailsSection">
-                <div class="collapsible-header" onclick="toggleSection('periodDetailsSection')">
-                    <h2>{{ t('sections.period_details') }}</h2>
-                    <span class="collapsible-icon">▼</span>
-                </div>
-                <div class="collapsible-content">
-                    <div class="collapsible-inner">
-                        <div style="text-align:right; margin-bottom:5px;">
-                            <button class="small-btn" style="background-color: #17a2b8;"
-                                onclick="copyPeriodDetailsTable()">{{ t('tables.copy_table_tsv') }}</button>
-                        </div>
-                        <div>
-                            <div class="table-responsive">
-                                <table class="stats-table" id="periodStatsTable">
-                                    <thead>
-                                        <tr>
-                                            <th onclick="sortPeriodTable('range')">{{ t('tables.period_range') }}
-                                                &#8645;</th>
-                                            <th onclick="sortPeriodTable('count_actual')">{{ t('tables.data_coverage')
-                                                }} &#8645;
-                                            </th>
-                                            <th id="th_min_tmin" onclick="sortPeriodTable('min_tmin')">{{
-                                                t('tables.min_tmin') }}
-                                                &#8645;</th>
-                                            <th id="th_min_tmax" onclick="sortPeriodTable('min_tmax')">{{
-                                                t('tables.min_tmax') }}
-                                                &#8645;</th>
-                                            <th id="th_max_tmin" onclick="sortPeriodTable('max_tmin')">{{
-                                                t('tables.max_tmin') }}
-                                                &#8645;</th>
-                                            <th id="th_max_tmax" onclick="sortPeriodTable('max_tmax')">{{
-                                                t('tables.max_tmax') }}
-                                                &#8645;</th>
-                                            <th onclick="sortPeriodTable('cnt_tmin')">{{ t('tables.days_tmin') }}
-                                                &#8645;</th>
-                                            <th onclick="sortPeriodTable('cnt_tavg')">{{ t('tables.days_tavg') }}
-                                                &#8645;</th>
-                                            <th onclick="sortPeriodTable('cnt_tmax')">{{ t('tables.days_tmax') }}
-                                                &#8645;</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody></tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
 
         <!-- PART 3: RECORD LIST -->
         <div class="section">
-            <div class="collapsible-wrapper" id="recordListSection">
-                <div class="collapsible-header" onclick="toggleSection('recordListSection')">
-                    <h2>{{ t('sections.record_list', limit='<span id="limitLabel">15</span>')|safe }}</h2>
-                    <span class="collapsible-icon">▼</span>
+            <div id="recordListSection">
+                <div style="margin-bottom: 10px; border-bottom: 2px solid #007bff; padding-bottom: 5px;">
+                    <h2 style="margin: 0;">{{ t('sections.record_list', limit='<span id="limitLabel">15</span>')|safe }}
+                    </h2>
                 </div>
-                <div class="collapsible-content">
-                    <div class="collapsible-inner">
+                <div>
+                    <div>
                         <div class="record-controls">
                             <!-- REMOVED Filter Elements -->
                             <div class="control-group">
@@ -568,12 +463,58 @@
                                         </th>
                                     </tr>
                                 </thead>
-                                <tbody></tbody>
+                                <tbody id="recordsTableBody"></tbody>
                             </table>
                         </div>
                     </div>
                 </div>
             </div>
+        </div>
+
+        <div class="section" style="text-align: center; padding: 15px;">
+            <a href="#" onclick="openExtremeTemps(); return false;"
+                style="font-size: 1.1rem; font-weight: bold; color: #007bff; text-decoration: none;">
+                {{ t('links.view_extreme_temps') }}
+            </a>
+            <span style="padding: 0 30px"></span>
+            <a href="#" onclick="openPeriodStats(); return false;"
+                style="font-size: 1.1rem; font-weight: bold; color: #007bff; text-decoration: none;">
+                {{ t('links.view_period_stats') }}
+            </a>
+            <script>
+                function openExtremeTemps() {
+                    const sid = document.getElementById('stationId').value;
+                    const ds = document.getElementById('dataSource').value;
+                    let season = 'winter';
+                    const seasonEls = document.getElementsByName('season');
+                    for (let el of seasonEls) { if (el.checked) season = el.value; }
+
+                    const url = `/extreme_temps?station_id=${sid}&source=${ds}&season=${season}`;
+                    window.open(url, '_blank');
+                }
+                function openPeriodStats() {
+                    const sid = document.getElementById('stationId').value;
+                    const ds = document.getElementById('dataSource').value;
+                    const start = document.getElementById('startDate').value;
+                    const end = document.getElementById('endDate').value;
+                    const month = document.getElementById('monthFilter').value;
+                    const day = document.getElementById('dayFilter').value;
+                    const period = document.querySelector('input[name="season"]:checked').value === 'winter' ? 'p1' : 'p2';
+                    const hemi = document.querySelector('input[name="hemisphere"]:checked').value;
+
+                    const tmin_val = document.getElementById('tminVal').value;
+                    const tmin_dir = document.getElementById('tminDir').value;
+                    const tavg_val = document.getElementById('tavgVal').value;
+                    const tavg_dir = document.getElementById('tavgDir').value;
+                    const tmax_val = document.getElementById('tmaxVal').value;
+                    const tmax_dir = document.getElementById('tmaxDir').value;
+
+                    let url = `/period_stats?station_id=${sid}&source=${ds}&start_date=${start}&end_date=${end}&month_filter=${month}&day_filter=${day}&period=${period}&hemisphere=${hemi}`;
+                    url += `&tmin_val=${tmin_val}&tmin_dir=${tmin_dir}&tavg_val=${tavg_val}&tavg_dir=${tavg_dir}&tmax_val=${tmax_val}&tmax_dir=${tmax_dir}`;
+
+                    window.open(url, '_blank');
+                }
+            </script>
         </div>
 
         <!-- PART 4 & 5 (Restricted) -->
