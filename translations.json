@@ -463,7 +463,7 @@
       "stat_expected_days": "总天数",
       "copy_success": "表格已成功复制到剪贴板！",
       "range_filter_title": "日期范围:",
-      "consecutive_days_title": "连续记录(全周期)"
+      "consecutive_days_title": "连续记录"
     },
     "metrics": {
       "tmin": "夜温",
