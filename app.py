@@ -263,6 +263,8 @@ def fetch_and_clean_data(source, station_id, start_date, end_date):
             if end_date: df = df[df['DATE'] <= end_date]
             df = df[df['ELEMENT'].isin(['TMIN', 'TAVG', 'TMAX'])].copy()
             df['DATA_VALUE'] = df['DATA_VALUE'] / 10.0
+            # Filter Extreme Values: -110 to 70 Celsius
+            df = df[(df['DATA_VALUE'] >= -110) & (df['DATA_VALUE'] <= 70)]
         except Exception:
             return pd.DataFrame()
     else:
@@ -294,7 +296,7 @@ def fetch_and_clean_data(source, station_id, start_date, end_date):
                     df = temp_df.melt(id_vars=['STATION', 'DATE'], value_vars=['TAVG', 'TMAX', 'TMIN'], var_name='ELEMENT', value_name='DATA_VALUE')
                     df = df.rename(columns={'STATION': 'ID'})
                     df = df.dropna(subset=['DATA_VALUE'])
-                    df = df[(df['DATA_VALUE'] >= -120) & (df['DATA_VALUE'] <= 80)]
+                    df = df[(df['DATA_VALUE'] >= -110) & (df['DATA_VALUE'] <= 70)]
         except Exception: pass
     return df
 
@@ -766,8 +768,22 @@ def get_data():
 
             if st_df is not None and not pd.isna(center_lat) and not pd.isna(center_lon):
                 temp_st_df = st_df.copy()
-                if lat_min: temp_st_df = temp_st_df[temp_st_df['LAT'] >= float(lat_min)]
-                if lat_max: temp_st_df = temp_st_df[temp_st_df['LAT'] <= float(lat_max)]
+                include_opposite_lat = req.get('include_opposite_lat', False)
+                
+                if lat_min and lat_max:
+                    if include_opposite_lat:
+                         # Logic: (LAT >= lat_min & LAT <= lat_max) OR (LAT >= -lat_max & LAT <= -lat_min)
+                         # Note: -lat_max is the smaller value in the negative range, -lat_min is the larger.
+                         # Example: 30 to 45. Negative: -45 to -30.
+                         l_min, l_max = float(lat_min), float(lat_max)
+                         temp_st_df = temp_st_df[
+                             ((temp_st_df['LAT'] >= l_min) & (temp_st_df['LAT'] <= l_max)) |
+                             ((temp_st_df['LAT'] >= -l_max) & (temp_st_df['LAT'] <= -l_min))
+                         ]
+                    else:
+                        temp_st_df = temp_st_df[(temp_st_df['LAT'] >= float(lat_min)) & (temp_st_df['LAT'] <= float(lat_max))]
+                elif lat_min: temp_st_df = temp_st_df[temp_st_df['LAT'] >= float(lat_min)]
+                elif lat_max: temp_st_df = temp_st_df[temp_st_df['LAT'] <= float(lat_max)]
                 if lon_min: temp_st_df = temp_st_df[temp_st_df['LON'] >= float(lon_min)]
                 if lon_max: temp_st_df = temp_st_df[temp_st_df['LON'] <= float(lon_max)]
                 if elev_min: temp_st_df = temp_st_df[temp_st_df['ELEV'] >= float(elev_min)]
@@ -876,17 +892,22 @@ def get_multi_stats():
 
         def process_station(sid):
             s_name = "Unknown"
-            # Get Station Name
+            lat, lon, elev = '-', '-', '-'
+            # Get Station Name and Info
             if source == 'GHCND':
                 row = GHCND_DF[GHCND_DF['ID'] == sid]
-                if not row.empty: s_name = row.iloc[0]['NAME']
+                if not row.empty:
+                    s_name = row.iloc[0]['NAME']
+                    lat, lon, elev = row.iloc[0]['LAT'], row.iloc[0]['LON'], row.iloc[0]['ELEV']
             else:
                 row = GSOD_DF[GSOD_DF['ID'] == sid]
-                if not row.empty: s_name = row.iloc[0]['NAME']
+                if not row.empty:
+                    s_name = row.iloc[0]['NAME']
+                    lat, lon, elev = row.iloc[0]['LAT'], row.iloc[0]['LON'], row.iloc[0]['ELEV']
 
             # Fetch Data
             df = fetch_and_clean_data(source, sid, start_date, end_date)
-            if df.empty: return {'id': sid, 'name': s_name, 'val': '-', 'dates': []}
+            if df.empty: return {'id': sid, 'name': s_name, 'lat': lat, 'lon': lon, 'elev': elev, 'val': '-', 'dates': []}
 
             # Filter Month
             if month_filter and month_filter != "0":
@@ -903,15 +924,45 @@ def get_multi_stats():
             
             # --- METRIC LOGIC WITH TYPE CASTING ---
             
-            # 1. Averages
-            if metric.startswith('avg_'):
+            # 1. Monthly Average Extremes (Check first to avoid prefix conflicts with min_/max_)
+            if metric.startswith('min_monthly_avg_') or metric.startswith('max_monthly_avg_'):
+                is_min = metric.startswith('min_')
+                elem = metric.split('_')[3].upper()
+                
+                # Use the already filtered 'df' to respect UI selections (Month/Day filters)
+                sub = df[df['ELEMENT'] == elem]
+                
+                if not sub.empty:
+                    # Group by Calendar Month (1-12) and calculate mean across all selected years in 'df'
+                    monthly_avg = sub.groupby(sub['DATE'].dt.month)['DATA_VALUE'].mean()
+                    
+                    if not monthly_avg.empty:
+                        target_val = monthly_avg.min() if is_min else monthly_avg.max()
+                        val = float(round(target_val, 2))
+                        
+                        # Identify calendar months matching target_val (use epsilon for floats)
+                        matching_mask = np.isclose(monthly_avg, target_val, atol=1e-5)
+                        matching_months = sorted(monthly_avg[matching_mask].index.tolist())
+                        
+                        month_map = {
+                            1: 'Jan', 2: 'Feb', 3: 'Mar', 4: 'Apr', 5: 'May', 6: 'Jun',
+                            7: 'Jul', 8: 'Aug', 9: 'Sep', 10: 'Oct', 11: 'Nov', 12: 'Dec'
+                        }
+                        dates_info = [month_map[m] for m in matching_months]
+                    else:
+                        val = '-'
+                else:
+                    val = '-'
+
+            # 2. Averages
+            elif metric.startswith('avg_'):
                 elem = metric.split('_')[1].upper()
                 sub = df[df['ELEMENT'] == elem]
                 if not sub.empty: 
                     # Convert numpy float to python float
                     val = float(round(sub['DATA_VALUE'].mean(), 2))
             
-            # 2. Minimums
+            # 3. Minimums
             elif metric.startswith('min_'):
                 elem = metric.split('_')[1].upper()
                 sub = df[df['ELEMENT'] == elem]
@@ -921,7 +972,7 @@ def get_multi_stats():
                     val = float(min_val)
                     dates_info = sub[sub['DATA_VALUE'] == min_val]['DATE'].dt.strftime('%Y-%m-%d').tolist()
             
-            # 3. Maximums (Value)
+            # 4. Maximums (Value)
             elif metric.startswith('max_') and 'days' not in metric:
                 elem = metric.split('_')[1].upper()
                 sub = df[df['ELEMENT'] == elem]
@@ -931,7 +982,7 @@ def get_multi_stats():
                     val = float(max_val)
                     dates_info = sub[sub['DATA_VALUE'] == max_val]['DATE'].dt.strftime('%Y-%m-%d').tolist()
             
-            # 4. Maximum Days per Period (Count)
+            # 5. Maximum Days per Period (Count)
             elif metric.startswith('max_days_'):
                 elem = metric.split('_')[2].upper()
                 sub = df[df['ELEMENT'] == elem]
@@ -976,7 +1027,7 @@ def get_multi_stats():
                 else:
                     val = 0
 
-            # 5. Total Days across all records (Count matching threshold)
+            # 6. Total Days across all records (Count matching threshold)
             elif metric.startswith('total_days_'):
                 elem = metric.split('_')[2].upper()
                 sub = df[df['ELEMENT'] == elem]
@@ -1003,7 +1054,7 @@ def get_multi_stats():
                     val = 0
                     dates_info = []
 
-            # 6. Total days with valid value (non-null)
+            # 7. Total days with valid value (non-null)
             elif metric.startswith('valid_days_'):
                 elem = metric.split('_')[2].upper()
                 sub = df[df['ELEMENT'] == elem]
@@ -1013,7 +1064,7 @@ def get_multi_stats():
                     val = 0
                 dates_info = []
 
-            return {'id': sid, 'name': s_name, 'val': val, 'dates': dates_info}
+            return {'id': sid, 'name': s_name, 'lat': lat, 'lon': lon, 'elev': elev, 'val': val, 'dates': dates_info}
 
         # Run Parallel Processing
         with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
@@ -1112,6 +1163,138 @@ def delete_user(user_id):
     db.session.commit()
     flash(f'User {user.username} deleted.')
     return redirect(url_for('manage_users'))
+
+@app.route('/year_stats')
+@auth_or_visitor_required
+def year_stats():
+    station_id = request.args.get('station_id')
+    source = request.args.get('source', 'GHCND')
+    start_date = request.args.get('start_date')
+    end_date = request.args.get('end_date')
+    
+    # Thresholds
+    tmin_val = request.args.get('tmin_val')
+    tmin_dir = request.args.get('tmin_dir')
+    tavg_val = request.args.get('tavg_val')
+    tavg_dir = request.args.get('tavg_dir')
+    tmax_val = request.args.get('tmax_val')
+    tmax_dir = request.args.get('tmax_dir')
+    
+    thresh_params = {'TMIN': {'val': tmin_val, 'dir': tmin_dir}, 'TAVG': {'val': tavg_val, 'dir': tavg_dir}, 'TMAX': {'val': tmax_val, 'dir': tmax_dir}}
+    
+    custom_avg_tmin = request.args.get('custom_avg_tmin')
+    custom_avg_tavg = request.args.get('custom_avg_tavg')
+    custom_avg_tmax = request.args.get('custom_avg_tmax')
+    
+    station_name = station_id
+    station_info = {'lat': '-', 'lon': '-', 'elev': '-'}
+    try:
+        st_df = GHCND_DF if source == 'GHCND' else GSOD_DF
+        if st_df is not None:
+             row = st_df[st_df['ID'] == station_id]
+             if not row.empty: 
+                 station_name = f"{station_id} - {row.iloc[0]['NAME']}"
+                 station_info['lat'] = row.iloc[0]['LAT']
+                 station_info['lon'] = row.iloc[0]['LON']
+                 station_info['elev'] = row.iloc[0]['ELEV']
+    except: pass
+
+    df = fetch_and_clean_data(source, station_id, start_date, end_date)
+    
+    if df.empty:
+        return render_template('year_stats.html', tables=[], station_name=station_name, error_msg=get_translation('messages.station_data_error'))
+
+    month_names = {
+        0: get_translation('months.full_year'),
+        1: get_translation('months.january'), 2: get_translation('months.february'), 3: get_translation('months.march'),
+        4: get_translation('months.april'), 5: get_translation('months.may'), 6: get_translation('months.june'),
+        7: get_translation('months.july'), 8: get_translation('months.august'), 9: get_translation('months.september'),
+        10: get_translation('months.october'), 11: get_translation('months.november'), 12: get_translation('months.december')
+    }
+
+    results = []
+
+    def get_val_and_dates(sub_df, method='min'):
+        if sub_df.empty: return {'val': '-', 'dates': []}
+        target_val = sub_df['DATA_VALUE'].min() if method == 'min' else sub_df['DATA_VALUE'].max()
+        matches = sub_df[sub_df['DATA_VALUE'] == target_val]['DATE']
+        return {'val': float(target_val), 'dates': matches.dt.strftime('%Y-%m-%d').tolist()}
+
+    year_order = list(range(1, 13)) + [0]
+    for m in year_order:
+        # Filter
+        if m == 0:
+            sub_df = df.copy()
+        else:
+            sub_df = df[df['DATE'].dt.month == m].copy()
+            
+        stats = {}
+        # Calc stats for TMIN, TAVG, TMAX
+        for elem, custom_avg in [('TMIN', custom_avg_tmin), ('TAVG', custom_avg_tavg), ('TMAX', custom_avg_tmax)]:
+            elem_df = sub_df[sub_df['ELEMENT'] == elem]
+            if elem_df.empty:
+                stats[elem] = {'min': {'val': '-', 'dates':[]}, 'avg': '-', 'max': {'val': '-', 'dates':[]}, 'count_match': 0, 'explosive_power': '-', 'total': 0, 'total_valid': 0}
+            else:
+                natural_avg = elem_df['DATA_VALUE'].mean()
+                target_mean = float(custom_avg) if (custom_avg is not None and custom_avg != "") else natural_avg
+                variance = ((elem_df['DATA_VALUE'] - target_mean) ** 2).mean()
+                explosive_power = float(round(np.sqrt(variance), 2))
+                
+                t_val = thresh_params[elem]['val']
+                t_dir = thresh_params[elem]['dir']
+                count_match = 0
+                if t_val is not None and t_val != "":
+                    if t_dir == 'lte': count_match = int((elem_df['DATA_VALUE'] <= float(t_val)).sum())
+                    else: count_match = int((elem_df['DATA_VALUE'] >= float(t_val)).sum())
+                
+                stats[elem] = {
+                    'min': get_val_and_dates(elem_df, 'min'),
+                    'avg': float(round(natural_avg, 2)),
+                    'max': get_val_and_dates(elem_df, 'max'),
+                    'count_match': count_match,
+                    'explosive_power': explosive_power,
+                    'total': int(len(elem_df)),
+                    'total_valid': int(len(elem_df))
+                }
+        
+        results.append({'month_idx': m, 'month_name': month_names.get(m, str(m)), 'stats': stats})
+
+    # Sorting Logic
+    sort_row = request.args.get('sort_row')
+    if not sort_row: sort_row = 'TAVG' # Default Row
+    
+    sort_col = request.args.get('sort_col')
+    if not sort_col: sort_col = 'avg' # Default Col
+    
+    sort_order = request.args.get('sort_order', 'asc')
+
+    if sort_row and sort_col:
+        full_year_res = [r for r in results if r['month_idx'] == 0]
+        monthly_res = [r for r in results if r['month_idx'] != 0]
+
+        def get_val(item):
+            try:
+                elem_stats = item['stats'].get(sort_row)
+                if not elem_stats: return None
+                val = elem_stats[sort_col]['val'] if sort_col in ['min', 'max'] else elem_stats.get(sort_col)
+                if val == '-' or val is None: return None
+                return float(val)
+            except: return None
+
+        valid_res = []
+        invalid_res = []
+        
+        for item in monthly_res:
+            v = get_val(item)
+            if v is not None: valid_res.append((v, item))
+            else: invalid_res.append(item)
+        
+        valid_res.sort(key=lambda x: x[0], reverse=(sort_order == 'desc'))
+        sorted_valid_items = [x[1] for x in valid_res]
+        
+        results = sorted_valid_items + invalid_res + full_year_res
+
+    return render_template('year_stats.html', tables=results, station_name=station_name, station_info=station_info)
 
 @app.route('/date_details')
 @auth_or_visitor_required

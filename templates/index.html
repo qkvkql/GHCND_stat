@@ -323,6 +323,13 @@
                                     <strong>{{ t('multi_station.latitude_range') }}</strong>
                                     <input type="number" id="latMin" placeholder="{{ t('multi_station.min') }}">
                                     <input type="number" id="latMax" placeholder="{{ t('multi_station.max') }}">
+                                    <div style="display: flex; align-items: center; margin-top: 5px;">
+                                        <input type="checkbox" id="includeOppositeLat"
+                                            style="width: auto; margin-right: 5px;">
+                                        <label for="includeOppositeLat"
+                                            style="font-size: 0.9em; font-weight: normal; margin-bottom: 0;">{{
+                                            t('multi_station.include_opposite') }}</label>
+                                    </div>
                                 </div>
                                 <div class="thresh-box">
                                     <strong>{{ t('multi_station.longitude_range') }}</strong>
@@ -481,6 +488,11 @@
                 style="font-size: 1.1rem; font-weight: bold; color: #007bff; text-decoration: none;">
                 {{ t('links.view_period_stats') }}
             </a>
+            <span style="padding: 0 30px"></span>
+            <a href="#" onclick="openYearStats(); return false;"
+                style="font-size: 1.1rem; font-weight: bold; color: #007bff; text-decoration: none;">
+                {{ t('links.view_year_stats') }}
+            </a>
             <script>
                 function openExtremeTemps() {
                     const sid = document.getElementById('stationId').value;
@@ -511,6 +523,29 @@
 
                     let url = `/period_stats?station_id=${sid}&source=${ds}&start_date=${start}&end_date=${end}&month_filter=${month}&day_filter=${day}&period=${period}&hemisphere=${hemi}`;
                     url += `&tmin_val=${tmin_val}&tmin_dir=${tmin_dir}&tavg_val=${tavg_val}&tavg_dir=${tavg_dir}&tmax_val=${tmax_val}&tmax_dir=${tmax_dir}`;
+
+                    window.open(url, '_blank');
+                }
+                function openYearStats() {
+                    const sid = document.getElementById('stationId').value;
+                    const ds = document.getElementById('dataSource').value;
+                    const start = document.getElementById('startDate').value;
+                    const end = document.getElementById('endDate').value;
+
+                    const tmin_val = document.getElementById('tminVal').value;
+                    const tmin_dir = document.getElementById('tminDir').value;
+                    const tavg_val = document.getElementById('tavgVal').value;
+                    const tavg_dir = document.getElementById('tavgDir').value;
+                    const tmax_val = document.getElementById('tmaxVal').value;
+                    const tmax_dir = document.getElementById('tmaxDir').value;
+
+                    const custom_avg_tmin = document.getElementById('customAvgTmin').value;
+                    const custom_avg_tavg = document.getElementById('customAvgTavg').value;
+                    const custom_avg_tmax = document.getElementById('customAvgTmax').value;
+
+                    let url = `/year_stats?station_id=${sid}&source=${ds}&start_date=${start}&end_date=${end}`;
+                    url += `&tmin_val=${tmin_val}&tmin_dir=${tmin_dir}&tavg_val=${tavg_val}&tavg_dir=${tavg_dir}&tmax_val=${tmax_val}&tmax_dir=${tmax_dir}`;
+                    url += `&custom_avg_tmin=${custom_avg_tmin}&custom_avg_tavg=${custom_avg_tavg}&custom_avg_tmax=${custom_avg_tmax}`;
 
                     window.open(url, '_blank');
                 }
@@ -610,6 +645,18 @@
                                     <option value="valid_days_tmin">{{ t('statistics.valid_days_tmin') }}</option>
                                     <option value="valid_days_tavg">{{ t('statistics.valid_days_tavg') }}</option>
                                     <option value="valid_days_tmax">{{ t('statistics.valid_days_tmax') }}</option>
+                                    <option value="min_monthly_avg_tmin">{{ t('statistics.min_monthly_avg_tmin') }}
+                                    </option>
+                                    <option value="min_monthly_avg_tavg">{{ t('statistics.min_monthly_avg_tavg') }}
+                                    </option>
+                                    <option value="min_monthly_avg_tmax">{{ t('statistics.min_monthly_avg_tmax') }}
+                                    </option>
+                                    <option value="max_monthly_avg_tmin">{{ t('statistics.max_monthly_avg_tmin') }}
+                                    </option>
+                                    <option value="max_monthly_avg_tavg">{{ t('statistics.max_monthly_avg_tavg') }}
+                                    </option>
+                                    <option value="max_monthly_avg_tmax">{{ t('statistics.max_monthly_avg_tmax') }}
+                                    </option>
                                 </select>
                             </div>
                             <div class="control-group">
@@ -626,15 +673,16 @@
                             {{ t('tables.calculating_statistics') }}
                         </div>
 
-                        <div class="table-responsive" style="max-height: none;">
+                        <div class="table-responsive">
                             <table class="data-table" id="multiStatResultTable">
                                 <thead>
                                     <tr>
                                         <th onclick="sortMultiStatTable('id')">{{ t('tables.station_id') }} &#8645;</th>
-                                        <th onclick="sortMultiStatTable('name')">{{ t('tables.station_name') }} &#8645;
-                                        </th>
-                                        <th onclick="sortMultiStatTable('dist')">{{ t('tables.distance_km') }} &#8645;
-                                        </th>
+                                        <th onclick="sortMultiStatTable('name')">{{ t('tables.station_name') }} &#8645;</th>
+                                        <th onclick="sortMultiStatTable('lat')">{{ t('tables.latitude') }} &#8645;</th>
+                                        <th onclick="sortMultiStatTable('lon')">{{ t('tables.longitude') }} &#8645;</th>
+                                        <th onclick="sortMultiStatTable('elev')">{{ t('tables.elevation_m') }} &#8645;</th>
+                                        <th onclick="sortMultiStatTable('dist')">{{ t('tables.distance_km') }} &#8645;</th>
                                         <th onclick="sortMultiStatTable('val')">{{ t('tables.value') }} &#8645;</th>
                                         <th>{{ t('tables.relevant_dates_periods') }}</th>
                                     </tr>

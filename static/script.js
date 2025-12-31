@@ -389,7 +389,7 @@ function copyMultiStatsTable() {
 
 function sortMultiStatTable(column) {
     if (multiStatSortCol === column) { multiStatSortDir = (multiStatSortDir === 'asc') ? 'desc' : 'asc'; }
-    else { multiStatSortCol = column; multiStatSortDir = (column === 'val' || column === 'dist') ? 'desc' : 'asc'; }
+    else { multiStatSortCol = column; multiStatSortDir = (column === 'val' || column === 'dist' || column === 'lat' || column === 'lon' || column === 'elev') ? 'desc' : 'asc'; }
     renderMultiStatTable();
 }
 
@@ -411,10 +411,7 @@ function renderMultiStatTable() {
         if (isEmptyB) return -1; // B is empty -> always bottom
 
         // Both not empty, proceed with normal sort
-        if (multiStatSortCol === 'val') {
-            valA = parseFloat(valA);
-            valB = parseFloat(valB);
-        } else if (multiStatSortCol === 'dist') {
+        if (['val', 'dist', 'lat', 'lon', 'elev'].includes(multiStatSortCol)) {
             valA = parseFloat(valA || 0);
             valB = parseFloat(valB || 0);
         }
@@ -431,6 +428,7 @@ function renderMultiStatTable() {
             // Check if dates are period ranges (YYYY-YYYY)
             // Heuristic: check if the first item contains a hyphen and looks like a year-year
             const isPeriodLike = row.dates[0].match(/^\d{4}-\d{4}$/);
+            const isMonthName = row.dates[0].match(/^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)$/);
 
             if (isPeriodLike && row.dates.length > 1) {
                 // Multiple periods -> Show Modal Trigger
@@ -440,6 +438,9 @@ function renderMultiStatTable() {
             } else if (isPeriodLike && row.dates.length === 1) {
                 // Single period -> Direct Link
                 datesCell = `<span class="clickable-date" onclick="event.stopPropagation(); openDateDetails('period', '${row.dates[0]}', '${row.id}')" title="View Details">${row.dates[0]}</span>`;
+            } else if (isMonthName) {
+                // Month names -> Plain Text
+                datesCell = row.dates.join(', ');
             } else {
                 // Regular dates list (global stats or single dates) -> Direct Link (Type=List)
                 datesCell = `<span class="clickable-date" onclick="event.stopPropagation(); openDateDetails('list', '${row.dates.join(',')}', '${row.id}')" title="View Details">${row.dates.join(', ')}</span>`;
@@ -449,9 +450,9 @@ function renderMultiStatTable() {
         // Helper to add 'copy-cell' if val is valid
         const cls = (val) => (val && val !== '-' && val !== 'None') ? ' class="copy-cell"' : '';
 
-        // ID is index 0 (excluded), Name (1), Dist (2), Val (3)
-        // datesCell (4) is interactive
-        tr.innerHTML = `<td>${row.id}</td><td${cls(row.name)}>${row.name}</td><td${cls(row.dist)}>${row.dist}</td><td${cls(row.val)}>${row.val}</td><td>${datesCell}</td>`;
+        // ID is index 0 (excluded), Name (1), Lat (2), Lon (3), Elev (4), Dist (5), Val (6)
+        // datesCell (7) is interactive
+        tr.innerHTML = `<td>${row.id}</td><td${cls(row.name)}>${row.name}</td><td${cls(row.lat)}>${row.lat}</td><td${cls(row.lon)}>${row.lon}</td><td${cls(row.elev)}>${row.elev}</td><td${cls(row.dist)}>${row.dist}</td><td${cls(row.val)}>${row.val}</td><td>${datesCell}</td>`;
         tbody.appendChild(tr);
     });
 }
@@ -703,6 +704,7 @@ async function fetchData(keepSort = false) {
         country_limit: getElementValueSafe('countryLimit', ''),
         lat_min: getElementValueSafe('latMin', ''),
         lat_max: getElementValueSafe('latMax', ''),
+        include_opposite_lat: document.getElementById('includeOppositeLat') ? document.getElementById('includeOppositeLat').checked : false,
         lon_min: getElementValueSafe('lonMin', ''),
         lon_max: getElementValueSafe('lonMax', ''),
         elev_min: getElementValueSafe('elevMin', ''),

@@ -247,7 +247,10 @@
                     t('extreme_temps.starting_date_label') }}:</label>
                 <input type="text" id="startDateInput" placeholder="MM-DD" maxlength="5"
                     style="padding:5px; border-radius:4px; border:1px solid #ccc; width: 80px;"
-                    oninput="handleStartDateInput()">
+                    oninput="handleStartDateInput()" value="01-01">
+                <button onclick="handleStartDateInput()"
+                    style="padding: 5px 10px; cursor: pointer; border-radius: 4px; border: 1px solid #ccc; background-color: #f8f9fa; margin-left: 5px;">{{
+                    t('params.go') }}</button>
             </div>
         </div>
 

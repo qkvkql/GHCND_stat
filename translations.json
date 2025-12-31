@@ -54,13 +54,24 @@
       "loading_data": "Loading data...",
       "type_name_or_id": "Type Name or ID...",
       "custom_all": "Custom / All",
-      "all_days": "All Days"
+      "all_days": "All Days",
+      "go": "Go"
+    },
+    "sorting": {
+      "title": "Sort Months",
+      "row_label": "Focus Element (Row):",
+      "col_label": "Focus Statistic (Col):",
+      "order_label": "Order:",
+      "asc": "Ascending",
+      "desc": "Descending",
+      "submit": "Sort"
     },
     "links": {
       "ghcnd_stations_list": "GHCND stations list",
       "gsod_stations_list": "GSOD stations list",
       "view_extreme_temps": "View Daily Extreme Temperatures",
-      "view_period_stats": "View Period Stats"
+      "view_period_stats": "View Period Stats",
+      "view_year_stats": "View Year Statistics"
     },
     "months": {
       "full_year": "Full Year",
@@ -135,7 +146,8 @@
       "min": "Min",
       "max": "Max",
       "wban_limit": "WBAN Limit (GSOD):",
-      "limit_to_99999": "Limit to 99999"
+      "limit_to_99999": "Limit to 99999",
+      "include_opposite": "Include Opposite Hemisphere"
     },
     "tables": {
       "type": "Type",
@@ -208,7 +220,13 @@
       "total_days_tmax": "Total Days matching TMAX Threshold",
       "valid_days_tmin": "Total days with valid TMIN value",
       "valid_days_tavg": "Total days with valid TAVG value",
-      "valid_days_tmax": "Total days with valid TMAX value"
+      "valid_days_tmax": "Total days with valid TMAX value",
+      "min_monthly_avg_tmin": "Minimum value of monthly average TMIN",
+      "min_monthly_avg_tavg": "Minimum value of monthly average TAVG",
+      "min_monthly_avg_tmax": "Minimum value of monthly average TMAX",
+      "max_monthly_avg_tmin": "Maximum value of monthly average TMIN",
+      "max_monthly_avg_tavg": "Maximum value of monthly average TAVG",
+      "max_monthly_avg_tmax": "Maximum value of monthly average TMAX"
     },
     "messages": {
       "copied_to_clipboard": "Copied to clipboard!",
@@ -313,13 +331,24 @@
       "loading_data": "正在加载数据...",
       "type_name_or_id": "输入站名或站号...",
       "custom_all": "全部",
-      "all_days": "全部日期"
+      "all_days": "全部日期",
+      "go": "确认"
+    },
+    "sorting": {
+      "title": "月份排序",
+      "row_label": "关注元素 (行):",
+      "col_label": "关注统计 (列):",
+      "order_label": "顺序:",
+      "asc": "升序",
+      "desc": "降序",
+      "submit": "排序"
     },
     "links": {
       "ghcnd_stations_list": "GHCND站点列表",
       "gsod_stations_list": "GSOD站点列表",
       "view_extreme_temps": "分日期极端气温",
-      "view_period_stats": "冬/夏"
+      "view_period_stats": "冬/夏",
+      "view_year_stats": "全年逐月统计"
     },
     "thresholds": {
       "tmin_threshold": "夜温阈值",
@@ -354,7 +383,8 @@
       "min": "最小",
       "max": "最大",
       "wban_limit": "WBAN限制(GSOD):",
-      "limit_to_99999": "限制为99999"
+      "limit_to_99999": "限制为99999",
+      "include_opposite": "包含对侧半球"
     },
     "tables": {
       "type": "日温类型",
@@ -425,7 +455,13 @@
       "total_days_tmax": "昼温阈值天数总计",
       "valid_days_tmin": "夜温天数总计",
       "valid_days_tavg": "均温天数总计",
-      "valid_days_tmax": "昼温天数总计"
+      "valid_days_tmax": "昼温天数总计",
+      "min_monthly_avg_tmin": "月均夜温最小值",
+      "min_monthly_avg_tavg": "月均气温最小值",
+      "min_monthly_avg_tmax": "月均昼温最小值",
+      "max_monthly_avg_tmin": "月均夜温最大值",
+      "max_monthly_avg_tavg": "月均气温最大值",
+      "max_monthly_avg_tmax": "月均昼温最大值"
     },
     "messages": {
       "copied_to_clipboard": "已复制到剪贴板!",
