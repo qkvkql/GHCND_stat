@@ -863,7 +863,7 @@ def get_multi_stats():
         if not isinstance(station_ids, list):
             return jsonify({'status': 'error', 'message': 'station_ids must be a list'}), 400
         station_ids = [str(s).strip() for s in station_ids if str(s).strip()]
-        MAX_MULTI_IDS = 1000
+        MAX_MULTI_IDS = 10000
         if len(station_ids) > MAX_MULTI_IDS:
             return jsonify({'status': 'error', 'message': f'Max {MAX_MULTI_IDS} stations allowed'}), 400
         source = req.get('source', 'GHCND')

@@ -197,7 +197,9 @@
       "station_name": "Station Name",
       "value": "Value",
       "relevant_dates_periods": "Relevant Dates/Periods",
-      "total_valid": "Total Valid"
+      "total_valid": "Total Valid",
+      "total_result_rows": "Total Result Rows:",
+      "timer": "Elapsed Time: {time}s"
     },
     "statistics": {
       "average_tmin": "Average TMIN",
@@ -432,7 +434,9 @@
       "station_name": "站名",
       "value": "值",
       "relevant_dates_periods": "日期/(冬/夏)",
-      "total_valid": "总计"
+      "total_valid": "总计",
+      "total_result_rows": "当前显示结果总数:",
+      "timer": "用时: {time}秒"
     },
     "statistics": {
       "average_tmin": "平均夜温",

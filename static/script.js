@@ -462,9 +462,18 @@ async function calcMultiStats() {
     const tbody = document.querySelector('#multiStatResultTable tbody');
     if (!tbody) return;
     tbody.innerHTML = '';
+    const timerResultArea = document.getElementById('multiStatTimerResult');
+    if (timerResultArea) timerResultArea.innerText = '';
     rawMultiStatsResults = [];
     if (currentMultiStations.length === 0) { alert("No stations in list. Update Part 4 first."); return; }
     loading.classList.remove('hidden');
+
+    const timerSpan = document.getElementById('multiStatTimer');
+    const startTime = Date.now();
+    const timerInterval = setInterval(() => {
+        const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+        timerSpan.innerText = `(${elapsed}s)`;
+    }, 100);
 
     const distMap = {};
     currentMultiStations.forEach(s => distMap[s.id] = s.dist);
@@ -504,7 +513,25 @@ async function calcMultiStats() {
             renderMultiStatTable();
         } else { tbody.innerHTML = `<tr><td colspan="5">Error: ${result.message}</td></tr>`; }
     } catch (err) { tbody.innerHTML = `<tr><td colspan="5">Network Error</td></tr>`; }
-    finally { loading.classList.add('hidden'); }
+    finally {
+        clearInterval(timerInterval);
+        const elapsed = ((Date.now() - startTime) / 1000).toFixed(2);
+        // Use the translation if possible, or just build the string
+        // We can't easily call t() from JS, so we'll use a data attribute or similar if we wanted to be perfect
+        // But the user requested a timer inside the area, and we added a span next to the loading text.
+        // Let's refine the script.js to use the translation provided in the window object if we add it.
+        loading.classList.add('hidden');
+        timerSpan.innerText = ''; // Clear the intermediate timer
+
+        // Show final time in the table header or near it.
+        // For now, let's just stick it in a dedicated spot or log it.
+        // Actually, let's update the UI to show the final time even after loading finishes.
+        const timerResultArea = document.getElementById('multiStatTimerResult');
+        if (timerResultArea) {
+            const timerMsg = TIMER_LABEL_JS.replace('{time}', elapsed);
+            timerResultArea.innerText = timerMsg;
+        }
+    }
 }
 
 function triggerServerSort(columnName) {
@@ -642,7 +669,11 @@ async function fetchData(keepSort = false) {
     const multiLimit = multiLimitSelect ? multiLimitSelect.value : 15;
 
     recordsTbody.innerHTML = '';
-    if (multiTbody) multiTbody.innerHTML = '';
+    if (multiTbody) {
+        multiTbody.innerHTML = '';
+        const countEl = document.getElementById('multiStationCount');
+        if (countEl) countEl.innerText = '0';
+    }
     rawPeriodStats = [];
     renderPeriodTable();
     currentMultiStations = [];
@@ -782,6 +813,8 @@ async function fetchData(keepSort = false) {
         if (multiTbody) {
             if (result.multi_stations && result.multi_stations.length > 0) {
                 currentMultiStations = result.multi_stations;
+                const countEl = document.getElementById('multiStationCount');
+                if (countEl) countEl.innerText = result.multi_stations.length;
                 result.multi_stations.forEach(st => {
                     const tr = document.createElement('tr');
                     tr.innerHTML = `
@@ -797,6 +830,8 @@ async function fetchData(keepSort = false) {
                 });
             } else {
                 multiTbody.innerHTML = '<tr><td colspan="7" style="text-align:center;">No matching stations found.</td></tr>';
+                const countEl = document.getElementById('multiStationCount');
+                if (countEl) countEl.innerText = '0';
             }
         }
 

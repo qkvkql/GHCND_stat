@@ -575,6 +575,7 @@
                                     <option value="200">200</option>
                                     <option value="500">500</option>
                                     <option value="1000">1000</option>
+                                    <option value="10000">10000</option>
                                 </select>
                             </div>
                             <div class="control-group">
@@ -589,6 +590,10 @@
                         <div id="multiStationLoading" class="hidden"
                             style="color: #e67e22; font-weight: bold; margin-bottom: 10px;">
                             {{ t('tables.updating_station_list') }}
+                        </div>
+
+                        <div id="multiStationCountArea" style="margin-bottom: 5px; font-weight: bold;">
+                            {{ t('tables.total_result_rows') }} <span id="multiStationCount">0</span>
                         </div>
 
                         <div class="table-responsive">
@@ -666,11 +671,14 @@
                                     onclick="copyMultiStatsTable()">{{
                                     t('tables.copy_table_tsv') }}</button>
                             </div>
+                            <div id="multiStatTimerResult"
+                                style="margin-left: 10px; font-weight: bold; color: #28a745;"></div>
                         </div>
 
                         <div id="multiStatLoading" class="hidden"
                             style="color: #e67e22; font-weight: bold; margin-bottom: 10px;">
                             {{ t('tables.calculating_statistics') }}
+                            <span id="multiStatTimer" style="margin-left: 10px; color: #333;"></span>
                         </div>
 
                         <div class="table-responsive">
@@ -678,11 +686,14 @@
                                 <thead>
                                     <tr>
                                         <th onclick="sortMultiStatTable('id')">{{ t('tables.station_id') }} &#8645;</th>
-                                        <th onclick="sortMultiStatTable('name')">{{ t('tables.station_name') }} &#8645;</th>
+                                        <th onclick="sortMultiStatTable('name')">{{ t('tables.station_name') }} &#8645;
+                                        </th>
                                         <th onclick="sortMultiStatTable('lat')">{{ t('tables.latitude') }} &#8645;</th>
                                         <th onclick="sortMultiStatTable('lon')">{{ t('tables.longitude') }} &#8645;</th>
-                                        <th onclick="sortMultiStatTable('elev')">{{ t('tables.elevation_m') }} &#8645;</th>
-                                        <th onclick="sortMultiStatTable('dist')">{{ t('tables.distance_km') }} &#8645;</th>
+                                        <th onclick="sortMultiStatTable('elev')">{{ t('tables.elevation_m') }} &#8645;
+                                        </th>
+                                        <th onclick="sortMultiStatTable('dist')">{{ t('tables.distance_km') }} &#8645;
+                                        </th>
                                         <th onclick="sortMultiStatTable('val')">{{ t('tables.value') }} &#8645;</th>
                                         <th>{{ t('tables.relevant_dates_periods') }}</th>
                                     </tr>
@@ -712,6 +723,7 @@
     <script>
         // Pass translation to JavaScript
         const STATION_INFO_TITLE = "{{ t('params.current_selected_station') }}";
+        const TIMER_LABEL_JS = "{{ t('tables.timer') }}";
     </script>
     <script src="{{ url_for('static', filename='script.js') }}"></script>
 </body>
