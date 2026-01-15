@@ -111,7 +111,11 @@
       "header_count_tmax": "Count TMAX",
       "starting_date_label": "Starting Date (MM-DD)",
       "invalid_format_warning": "Invalid format! Please use MM-DD (e.g. 07-16)",
-      "date_not_found": "Date {date} not found in this station's record."
+      "date_not_found": "Date {date} not found in this station's record.",
+      "copy_table_excel": "Copy Table for Excel",
+      "copy_processing": "Copying table...",
+      "copy_success": "Table copied! Paste into Excel.",
+      "copy_fail": "Copy failed."
     },
     "thresholds": {
       "tmin_threshold": "TMIN Threshold",
@@ -548,7 +552,11 @@
       "header_count_tmax": "昼温总计",
       "starting_date_label": "起始日期",
       "invalid_format_warning": "格式错误！请使用 MM-DD 格式 (如 07-16)",
-      "date_not_found": "在该站点的记录中未找到日期 {date}。"
+      "date_not_found": "在该站点的记录中未找到日期 {date}。",
+      "copy_table_excel": "复制表格(Excel)",
+      "copy_processing": "正在复制表格...",
+      "copy_success": "表格已复制！请粘贴到 Excel。",
+      "copy_fail": "复制失败。"
     },
     "modal": {
       "select_period": "选择冬/夏",
