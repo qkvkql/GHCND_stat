@@ -11,6 +11,9 @@ let currentMultiStations = [];
 let rawMultiStatsResults = [];
 let multiStatSortCol = 'val';
 let multiStatSortDir = 'desc';
+let rawMonthlyList = [];
+let monthlySortCol = 'ym';
+let monthlySortDir = 'desc';
 let stationLookup = {};
 
 // Helper function to convert season+hemisphere to internal period mode
@@ -138,6 +141,8 @@ function applyQuickDateRange() {
     const endInput = document.getElementById('endDate');
     if (selector.value === '1991-2020') { startInput.value = '1991-01-01'; endInput.value = '2020-12-31'; }
     else if (selector.value === '1961-1990') { startInput.value = '1961-01-01'; endInput.value = '1990-12-31'; }
+    else if (selector.value === 'WEA6190') { startInput.value = '1960-07-16'; endInput.value = '1990-07-15'; }
+    else if (selector.value === 'WEA9120') { startInput.value = '1990-07-16'; endInput.value = '2020-07-15'; }
     else { startInput.value = '1800-01-01'; endInput.value = '2100-12-31'; }
 }
 
@@ -293,6 +298,98 @@ function copyRecordsTable() {
     navigator.clipboard.writeText(textToCopy).then(() => { showToast('Records table copied to clipboard!'); });
 }
 
+function updateMonthlyList() {
+    renderMonthlyList();
+}
+
+function sortMonthlyList(columnName) {
+    if (monthlySortCol === columnName) {
+        monthlySortDir = (monthlySortDir === 'asc') ? 'desc' : 'asc';
+    } else {
+        monthlySortCol = columnName;
+        monthlySortDir = (columnName === 'ym') ? 'desc' : 'desc';
+    }
+    renderMonthlyList();
+}
+
+function renderMonthlyList() {
+    const table = document.getElementById('monthlyListTable');
+    if (!table) return;
+    const tbody = table.querySelector('tbody');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+
+    if (!rawMonthlyList || rawMonthlyList.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="13" style="text-align:center;">No monthly records found.</td></tr>';
+        return;
+    }
+
+    const limitSelect = document.getElementById('monthlyLimitSelect');
+    const limit = limitSelect ? parseInt(limitSelect.value, 10) : 24;
+
+    const sorted = [...rawMonthlyList];
+    sorted.sort((a, b) => {
+        let valA = a[monthlySortCol];
+        let valB = b[monthlySortCol];
+        const isEmpty = (v) => v === '-' || v === null || v === undefined || (typeof v === 'string' && v.trim() === '');
+        const isEmptyA = isEmpty(valA);
+        const isEmptyB = isEmpty(valB);
+
+        if (isEmptyA && isEmptyB) return 0;
+        if (isEmptyA) return 1;
+        if (isEmptyB) return -1;
+
+        if (monthlySortCol === 'ym') {
+            return monthlySortDir === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
+        } else {
+            valA = parseFloat(valA);
+            valB = parseFloat(valB);
+            if (valA < valB) return monthlySortDir === 'asc' ? -1 : 1;
+            if (valA > valB) return monthlySortDir === 'asc' ? 1 : -1;
+            return 0;
+        }
+    });
+
+    const displayList = sorted.slice(0, limit);
+    const cls = (val) => (val !== '-' && val !== null && val !== undefined && val !== '') ? ' class="copy-cell"' : '';
+
+    displayList.forEach(item => {
+        const tr = document.createElement('tr');
+        const ymCell = `<span class="clickable-date" onclick="event.stopPropagation(); openDateDetails('month', '${item.ym}')" title="View Month Details">${item.ym}</span>`;
+        tr.innerHTML = `
+            <td>${ymCell}</td>
+            <td${cls(item.min_tmin)}>${item.min_tmin}</td>
+            <td${cls(item.avg_tmin)}>${item.avg_tmin}</td>
+            <td${cls(item.max_tmin)}>${item.max_tmin}</td>
+            <td${cls(item.min_tavg)}>${item.min_tavg}</td>
+            <td${cls(item.avg_tavg)}>${item.avg_tavg}</td>
+            <td${cls(item.max_tavg)}>${item.max_tavg}</td>
+            <td${cls(item.min_tmax)}>${item.min_tmax}</td>
+            <td${cls(item.avg_tmax)}>${item.avg_tmax}</td>
+            <td${cls(item.max_tmax)}>${item.max_tmax}</td>
+            <td${cls(item.cnt_min)}>${item.cnt_min}</td>
+            <td${cls(item.cnt_avg)}>${item.cnt_avg}</td>
+            <td${cls(item.cnt_max)}>${item.cnt_max}</td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+function copyMonthlyListTable() {
+    const table = document.getElementById('monthlyListTable');
+    if (!table) return;
+    let tsv = [];
+    const headers = Array.from(table.querySelectorAll('thead th')).map(th => th.innerText.replace(' \u21c5', '').trim());
+    tsv.push(headers.join('\t'));
+    const rows = table.querySelectorAll('tbody tr');
+    rows.forEach(tr => {
+        const cells = Array.from(tr.querySelectorAll('td')).map(td => td.innerText.trim());
+        tsv.push(cells.join('\t'));
+    });
+    const textToCopy = tsv.join('\n');
+    navigator.clipboard.writeText(textToCopy).then(() => { showToast('Monthly table copied to clipboard!'); });
+}
+
 function copyGlobalStatsTable() {
     // We need to add ID 'globalStatsTable' to the table in index.html first! 
     // Wait, I did that in previous step replacement.
@@ -429,6 +526,7 @@ function renderMultiStatTable() {
             // Heuristic: check if the first item contains a hyphen and looks like a year-year
             const isPeriodLike = row.dates[0].match(/^\d{4}-\d{4}$/);
             const isMonthName = row.dates[0].match(/^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)$/);
+            const isYearMonth = row.dates[0].match(/^\d{4}-\d{2}$/);
 
             if (isPeriodLike && row.dates.length > 1) {
                 // Multiple periods -> Show Modal Trigger
@@ -441,6 +539,8 @@ function renderMultiStatTable() {
             } else if (isMonthName) {
                 // Month names -> Plain Text
                 datesCell = row.dates.join(', ');
+            } else if (isYearMonth) {
+                datesCell = row.dates.map(ym => `<span class="clickable-date" onclick="event.stopPropagation(); openDateDetails('month', '${ym}', '${row.id}')" title="View Month Details">${ym}</span>`).join(', ');
             } else {
                 // Regular dates list (global stats or single dates) -> Direct Link (Type=List)
                 datesCell = `<span class="clickable-date" onclick="event.stopPropagation(); openDateDetails('list', '${row.dates.join(',')}', '${row.id}')" title="View Details">${row.dates.join(', ')}</span>`;
@@ -468,6 +568,10 @@ async function calcMultiStats() {
     if (currentMultiStations.length === 0) { alert("No stations in list. Update Part 4 first."); return; }
     loading.classList.remove('hidden');
 
+    const selectedMetric = document.getElementById('multiStatSelect').value;
+    multiStatSortCol = 'val';
+    multiStatSortDir = selectedMetric.startsWith('min_') ? 'asc' : 'desc';
+
     const timerSpan = document.getElementById('multiStatTimer');
     const startTime = Date.now();
     const timerInterval = setInterval(() => {
@@ -485,7 +589,7 @@ async function calcMultiStats() {
     const payload = {
         station_ids: currentMultiStations.map(s => s.id),
         source: document.getElementById('dataSource').value,
-        metric: document.getElementById('multiStatSelect').value,
+        metric: selectedMetric,
         start_date: document.getElementById('startDate').value,
         end_date: document.getElementById('endDate').value,
         month_filter: document.getElementById('monthFilter').value,
@@ -669,6 +773,8 @@ async function fetchData(keepSort = false) {
     const multiLimit = multiLimitSelect ? multiLimitSelect.value : 15;
 
     recordsTbody.innerHTML = '';
+    rawMonthlyList = [];
+    renderMonthlyList();
     if (multiTbody) {
         multiTbody.innerHTML = '';
         const countEl = document.getElementById('multiStationCount');
@@ -731,7 +837,10 @@ async function fetchData(keepSort = false) {
         center_mode: getElementValueSafe('centerMode', 'station'),
         center_lat: getElementValueSafe('centerLat', ''),
         center_lon: getElementValueSafe('centerLon', ''),
-        max_dist: getElementValueSafe('maxDist', 'no_limit'),
+        max_dist: (() => {
+            const raw = getElementValueSafe('maxDist', 'no_limit').trim();
+            return (!raw || raw === 'no_limit') ? 'no_limit' : raw;
+        })(),
         country_limit: getElementValueSafe('countryLimit', ''),
         lat_min: getElementValueSafe('latMin', ''),
         lat_max: getElementValueSafe('latMax', ''),
@@ -746,6 +855,17 @@ async function fetchData(keepSort = false) {
         multi_sort_dir: multiSortDir,
         multi_limit: multiLimit
     };
+
+    const kmlInput = document.getElementById('kmlUpload');
+    if (kmlInput && kmlInput.files.length > 0) {
+        const file = kmlInput.files[0];
+        payload.kml_content = await new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onload = e => resolve(e.target.result);
+            reader.onerror = () => resolve('');
+            reader.readAsText(file);
+        });
+    }
 
     try {
         const response = await fetch('/get_data', {
@@ -809,6 +929,9 @@ async function fetchData(keepSort = false) {
                 recordsTbody.appendChild(tr);
             });
         }
+
+        rawMonthlyList = result.monthly_list || [];
+        renderMonthlyList();
 
         if (multiTbody) {
             if (result.multi_stations && result.multi_stations.length > 0) {
@@ -885,3 +1008,65 @@ function updateStatRow(prefix, data) {
 }
 
 // Removed unused element filter functions
+
+function togglePogodaiklimatInputs() {
+    const cb = document.getElementById('enablePogodaiklimatLink');
+    const inputsDiv = document.getElementById('pogodaiklimatInputs');
+    if (cb && cb.checked) {
+        inputsDiv.style.display = 'flex';
+    } else {
+        inputsDiv.style.display = 'none';
+    }
+}
+
+function applyPogodaiklimatLinks() {
+    const startIndex = parseInt(document.getElementById('pogodaStartIndex').value, 10);
+    const endIndex = parseInt(document.getElementById('pogodaEndIndex').value, 10);
+    
+    if (isNaN(startIndex) || isNaN(endIndex) || startIndex < 0 || endIndex < startIndex) {
+        alert("Invalid start or end index.");
+        return;
+    }
+    
+    const table = document.getElementById('multiStationTable');
+    if (!table) return;
+    
+    const rows = table.querySelectorAll('tbody tr');
+    rows.forEach(tr => {
+        // The first cell is the ID
+        const td = tr.querySelector('td');
+        if (td) {
+            // Get the raw text content without HTML tags
+            const originalText = td.textContent.trim();
+            // Ensure this is a valid station row (not the 'No matching stations found' row)
+            if (originalText && originalText !== '-' && !originalText.includes('No matching stations')) {
+                // Ensure indices are within bounds
+                const actualEnd = Math.min(endIndex, originalText.length);
+                const subStr = originalText.substring(startIndex, actualEnd);
+                if (subStr) {
+                    td.innerHTML = `<a href="https://www.pogodaiklimat.ru/history/${subStr}.htm" target="_blank" onclick="event.stopPropagation()">${originalText}</a>`;
+                    td.classList.remove('copy-cell');
+                }
+            }
+        }
+    });
+}
+
+function toggleKmlClearBtn() {
+    const kmlInput = document.getElementById('kmlUpload');
+    const clearBtn = document.getElementById('clearKmlBtn');
+    if (clearBtn && kmlInput) {
+        clearBtn.style.display = (kmlInput.files && kmlInput.files.length > 0) ? 'inline-block' : 'none';
+    }
+}
+
+function clearKmlFile() {
+    const kmlInput = document.getElementById('kmlUpload');
+    if (kmlInput) {
+        kmlInput.value = '';
+    }
+    const clearBtn = document.getElementById('clearKmlBtn');
+    if (clearBtn) {
+        clearBtn.style.display = 'none';
+    }
+}

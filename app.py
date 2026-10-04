@@ -15,6 +15,12 @@ import concurrent.futures
 from dotenv import load_dotenv
 from flask_wtf.csrf import CSRFProtect, generate_csrf
 import json
+import re
+import calendar
+import shapely
+from shapely.geometry import Polygon, Point
+from shapely.ops import unary_union
+from shapely.prepared import prep
 
 load_dotenv()
 
@@ -793,10 +799,69 @@ def get_data():
                     else: temp_st_df = temp_st_df[temp_st_df['CTRY'].str.upper() == country_limit]
                 if source == 'GSOD' and wban_limit == '99999': temp_st_df = temp_st_df[temp_st_df['WBAN'] == '99999']
 
+                kml_content = req.get('kml_content', '')
+                if kml_content:
+                    kml_polygons = []
+                    coords_texts = re.findall(r'<coordinates>(.*?)</coordinates>', kml_content, re.DOTALL)
+                    for text in coords_texts:
+                        points = []
+                        # Split by space, newline, or carriage return
+                        for coord_str in text.strip().split():
+                            parts = coord_str.split(',')
+                            if len(parts) >= 2:
+                                try:
+                                    points.append((float(parts[0]), float(parts[1])))
+                                except ValueError:
+                                    pass
+                        if len(points) >= 3:
+                            try:
+                                poly = Polygon(points)
+                                if not poly.is_valid:
+                                    poly = shapely.make_valid(poly)
+                                kml_polygons.append(poly)
+                            except Exception:
+                                pass
+                    
+                    if kml_polygons:
+                        try:
+                            merged_geom = unary_union(kml_polygons)
+                            minx, miny, maxx, maxy = merged_geom.bounds
+                        except Exception:
+                            minx = min(p.bounds[0] for p in kml_polygons)
+                            miny = min(p.bounds[1] for p in kml_polygons)
+                            maxx = max(p.bounds[2] for p in kml_polygons)
+                            maxy = max(p.bounds[3] for p in kml_polygons)
+                            merged_geom = None
+
+                        # Fast Bounding Box pre-filter (vectorized)
+                        temp_st_df = temp_st_df[
+                            temp_st_df['LON'].notna() & temp_st_df['LAT'].notna() &
+                            (temp_st_df['LON'] >= minx) & (temp_st_df['LON'] <= maxx) &
+                            (temp_st_df['LAT'] >= miny) & (temp_st_df['LAT'] <= maxy)
+                        ]
+
+                        # Exact point-in-polygon test on candidate stations
+                        if not temp_st_df.empty:
+                            if merged_geom is not None and hasattr(shapely, 'intersects_xy'):
+                                lons = temp_st_df['LON'].to_numpy()
+                                lats = temp_st_df['LAT'].to_numpy()
+                                mask = shapely.intersects_xy(merged_geom, lons, lats)
+                                temp_st_df = temp_st_df[mask]
+                            else:
+                                prep_geoms = [prep(p) for p in (kml_polygons if merged_geom is None else [merged_geom])]
+                                def in_kml(row):
+                                    pt = Point(row['LON'], row['LAT'])
+                                    return any(pg.intersects(pt) for pg in prep_geoms)
+                                temp_st_df = temp_st_df[temp_st_df.apply(in_kml, axis=1)]
+
                 temp_st_df['DIST'] = haversine_vectorized(center_lat, center_lon, temp_st_df['LAT'], temp_st_df['LON'])
-                if max_dist != 'no_limit':
-                    limit_km = float(max_dist)
-                    temp_st_df = temp_st_df[temp_st_df['DIST'] <= limit_km]
+                if max_dist not in ['no_limit', '', None]:
+                    try:
+                        limit_km = float(max_dist)
+                        if limit_km >= 0:
+                            temp_st_df = temp_st_df[temp_st_df['DIST'] <= limit_km]
+                    except (ValueError, TypeError):
+                        pass
                 
                 ms_sort_asc = (multi_sort_dir == 'asc')
                 
@@ -838,12 +903,41 @@ def get_data():
                         'dist': dist_val, 'country': str(c_name) if pd.notna(c_name) else ''
                     })
 
+        # --- SINGLE MONTH LIST ---
+        monthly_dict = {}
+        for elem_name in ['TMIN', 'TAVG', 'TMAX']:
+            sub = df[df['ELEMENT'] == elem_name]
+            if not sub.empty:
+                sub = sub.copy()
+                sub['YYYYMM'] = sub['DATE'].dt.to_period('M').astype(str)
+                grouped = sub.groupby('YYYYMM')['DATA_VALUE']
+                for ym, grp in grouped:
+                    if ym not in monthly_dict:
+                        monthly_dict[ym] = {
+                            'ym': ym,
+                            'min_tmin': '-', 'avg_tmin': '-', 'max_tmin': '-',
+                            'min_tavg': '-', 'avg_tavg': '-', 'max_tavg': '-',
+                            'min_tmax': '-', 'avg_tmax': '-', 'max_tmax': '-',
+                            'cnt_min': 0, 'cnt_avg': 0, 'cnt_max': 0
+                        }
+                    entry = monthly_dict[ym]
+                    vals = grp.values
+                    elem_lower = elem_name.lower()
+                    entry[f'min_{elem_lower}'] = float(round(vals.min(), 1))
+                    entry[f'avg_{elem_lower}'] = float(round(vals.mean(), 2))
+                    entry[f'max_{elem_lower}'] = float(round(vals.max(), 1))
+                    cnt_key = 'cnt_min' if elem_name == 'TMIN' else ('cnt_avg' if elem_name == 'TAVG' else 'cnt_max')
+                    entry[cnt_key] = int(len(vals))
+
+        monthly_list = sorted(monthly_dict.values(), key=lambda x: x['ym'], reverse=True)
+
         response_data = {
             'status': 'success', 
             'stats': stats, 
             'period_stats': period_stats, 
             'period_summary': period_summary, 
             'records': records_list, 
+            'monthly_list': monthly_list,
             'multi_stations': multi_stations
         }
         # Clean NaN values before JSON serialization
@@ -949,6 +1043,30 @@ def get_multi_stats():
                             7: 'Jul', 8: 'Aug', 9: 'Sep', 10: 'Oct', 11: 'Nov', 12: 'Dec'
                         }
                         dates_info = [month_map[m] for m in matching_months]
+                    else:
+                        val = '-'
+                else:
+                    val = '-'
+
+            # 1b. Single Month Average Extremes (group by YYYY-MM)
+            elif metric.startswith('min_single_month_avg_') or metric.startswith('max_single_month_avg_'):
+                is_min = metric.startswith('min_')
+                elem = metric.split('_')[4].upper()  # min_single_month_avg_tmin -> tmin
+                
+                sub = df[df['ELEMENT'] == elem]
+                
+                if not sub.empty:
+                    sub = sub.copy()
+                    sub['YYYYMM'] = sub['DATE'].dt.to_period('M').astype(str)
+                    monthly_avg = sub.groupby('YYYYMM')['DATA_VALUE'].mean()
+                    
+                    if not monthly_avg.empty:
+                        target_val = monthly_avg.min() if is_min else monthly_avg.max()
+                        val = float(round(target_val, 2))
+                        
+                        matching_mask = np.isclose(monthly_avg, target_val, atol=1e-5)
+                        matching_months = sorted(monthly_avg[matching_mask].index.tolist())
+                        dates_info = matching_months  # e.g. ['1969-01', '1985-02']
                     else:
                         val = '-'
                 else:
@@ -1164,9 +1282,10 @@ def delete_user(user_id):
     flash(f'User {user.username} deleted.')
     return redirect(url_for('manage_users'))
 
+@app.route('/calendar_months_stats')
 @app.route('/year_stats')
 @auth_or_visitor_required
-def year_stats():
+def calendar_months_stats():
     station_id = request.args.get('station_id')
     source = request.args.get('source', 'GHCND')
     start_date = request.args.get('start_date')
@@ -1202,7 +1321,7 @@ def year_stats():
     df = fetch_and_clean_data(source, station_id, start_date, end_date)
     
     if df.empty:
-        return render_template('year_stats.html', tables=[], station_name=station_name, error_msg=get_translation('messages.station_data_error'))
+        return render_template('calendar_months_stats.html', tables=[], station_name=station_name, station_info=station_info, error_msg=get_translation('messages.station_data_error'))
 
     month_names = {
         0: get_translation('months.full_year'),
@@ -1220,8 +1339,8 @@ def year_stats():
         matches = sub_df[sub_df['DATA_VALUE'] == target_val]['DATE']
         return {'val': float(target_val), 'dates': matches.dt.strftime('%Y-%m-%d').tolist()}
 
-    year_order = list(range(1, 13)) + [0]
-    for m in year_order:
+    month_order = list(range(1, 13)) + [0]
+    for m in month_order:
         # Filter
         if m == 0:
             sub_df = df.copy()
@@ -1294,7 +1413,9 @@ def year_stats():
         
         results = sorted_valid_items + invalid_res + full_year_res
 
-    return render_template('year_stats.html', tables=results, station_name=station_name, station_info=station_info)
+    return render_template('calendar_months_stats.html', tables=results, station_name=station_name, station_info=station_info)
+
+year_stats = calendar_months_stats
 
 @app.route('/date_details')
 @auth_or_visitor_required
@@ -1359,12 +1480,35 @@ def date_details():
                 req_end = f"{year_part+1}-01-15"
         except: pass
         
+    elif query_type == 'year':
+        # value expected: "YYYY" e.g. "2023"
+        try:
+            y = int(value)
+            req_start = f"{y:04d}-01-01"
+            req_end = f"{y:04d}-12-31"
+        except: pass
+
+    elif query_type == 'month':
+        # value expected: "YYYY-MM" e.g. "1969-02"
+        try:
+            parts = value.split('-')
+            y = int(parts[0])
+            m = int(parts[1])
+            last_day = calendar.monthrange(y, m)[1]
+            req_start = f"{y:04d}-{m:02d}-01"
+            req_end = f"{y:04d}-{m:02d}-{last_day:02d}"
+        except: pass
+
     elif query_type == 'list':
         # value expected: "YYYY-MM-DD,YYYY-MM-DD..."
         try:
-            target_dates = value.split(',')
-            # Find min/max to optimize fetch
-            dt_objs = [datetime.strptime(d.strip(), '%Y-%m-%d') for d in target_dates if d.strip()]
+            target_dates = [d.strip() for d in value.split(',') if d.strip()]
+            dt_objs = []
+            for d in target_dates:
+                if len(d) == 7:
+                    dt_objs.append(datetime.strptime(d, '%Y-%m'))
+                else:
+                    dt_objs.append(datetime.strptime(d, '%Y-%m-%d'))
             if dt_objs:
                 req_start = min(dt_objs).strftime('%Y-%m-%d')
                 req_end = max(dt_objs).strftime('%Y-%m-%d')
@@ -1400,7 +1544,7 @@ def date_details():
     streaks_data = {}
     expected_total = None
 
-    if query_type == 'period' and req_start and req_end:
+    if query_type in ['period', 'year'] and req_start and req_end:
         try:
             d1 = datetime.strptime(req_start, '%Y-%m-%d')
             d2 = datetime.strptime(req_end, '%Y-%m-%d')
@@ -1485,6 +1629,10 @@ def period_stats():
         day_filter = request.args.get('day_filter', '0')
         period_mode = request.args.get('period', 'p1')
         hemisphere = request.args.get('hemisphere', 'north')
+        try:
+            min_days = int(request.args.get('min_days', 60))
+        except (ValueError, TypeError):
+            min_days = 60
         
         thresh_params = {
             'TMIN': {'val': request.args.get('tmin_val'), 'dir': request.args.get('tmin_dir')},
@@ -1551,10 +1699,12 @@ def period_stats():
                 else: return int((vals >= float(t_val)).sum())
             s_tmin_df = season_df[season_df['ELEMENT'] == 'TMIN']
             s_tmax_df = season_df[season_df['ELEMENT'] == 'TMAX']
+            s_tavg_df = season_df[season_df['ELEMENT'] == 'TAVG']
             min_tmin_obj = get_val_and_dates(s_tmin_df, 'min')
             max_tmin_obj = get_val_and_dates(s_tmin_df, 'max')
             min_tmax_obj = get_val_and_dates(s_tmax_df, 'min')
             max_tmax_obj = get_val_and_dates(s_tmax_df, 'max')
+            avg_tavg = float(round(s_tavg_df['DATA_VALUE'].mean(), 2)) if not s_tavg_df.empty else '-'
             
             count_djf_tmin = season_df[(season_df['DATE'].dt.month.isin([12, 1, 2])) & (season_df['ELEMENT'] == 'TMIN')].shape[0]
             count_djf_tmax = season_df[(season_df['DATE'].dt.month.isin([12, 1, 2])) & (season_df['ELEMENT'] == 'TMAX')].shape[0]
@@ -1566,27 +1716,39 @@ def period_stats():
             
             valid_min_tmin = True
             if season_cdt2: valid_min_tmin = False
-            if hemisphere == 'north' and period_mode == 'p1' and count_djf_tmin < 60: valid_min_tmin = False
-            elif hemisphere == 'south' and period_mode == 'p2' and count_jja_tmin < 60: valid_min_tmin = False
+            if hemisphere == 'north' and period_mode == 'p1' and count_djf_tmin < min_days: valid_min_tmin = False
+            elif hemisphere == 'south' and period_mode == 'p2' and count_jja_tmin < min_days: valid_min_tmin = False
             if valid_min_tmin and min_tmin_obj['val'] != '-': list_min_tmin.append(min_tmin_obj['val']); count_used_min_tmin += 1
             
             valid_min_tmax = True
             if season_cdt2: valid_min_tmax = False
-            if hemisphere == 'north' and period_mode == 'p1' and count_djf_tmax < 60: valid_min_tmax = False
-            elif hemisphere == 'south' and period_mode == 'p2' and count_jja_tmax < 60: valid_min_tmax = False
+            if hemisphere == 'north' and period_mode == 'p1' and count_djf_tmax < min_days: valid_min_tmax = False
+            elif hemisphere == 'south' and period_mode == 'p2' and count_jja_tmax < min_days: valid_min_tmax = False
             if valid_min_tmax and min_tmax_obj['val'] != '-': list_min_tmax.append(min_tmax_obj['val']); count_used_min_tmax += 1
             
             valid_max_tmin = True
             if season_cdt1: valid_max_tmin = False
-            if hemisphere == 'north' and period_mode == 'p2' and count_jja_tmin < 60: valid_max_tmin = False
-            elif hemisphere == 'south' and period_mode == 'p1' and count_djf_tmin < 60: valid_max_tmin = False
+            if hemisphere == 'north' and period_mode == 'p2' and count_jja_tmin < min_days: valid_max_tmin = False
+            elif hemisphere == 'south' and period_mode == 'p1' and count_djf_tmin < min_days: valid_max_tmin = False
             if valid_max_tmin and max_tmin_obj['val'] != '-': list_max_tmin.append(max_tmin_obj['val']); count_used_max_tmin += 1
             
             valid_max_tmax = True
             if season_cdt1: valid_max_tmax = False
-            if hemisphere == 'north' and period_mode == 'p2' and count_jja_tmax < 60: valid_max_tmax = False
-            elif hemisphere == 'south' and period_mode == 'p1' and count_djf_tmax < 60: valid_max_tmax = False
+            if hemisphere == 'north' and period_mode == 'p2' and count_jja_tmax < min_days: valid_max_tmax = False
+            elif hemisphere == 'south' and period_mode == 'p1' and count_djf_tmax < min_days: valid_max_tmax = False
             if valid_max_tmax and max_tmax_obj['val'] != '-': list_max_tmax.append(max_tmax_obj['val']); count_used_max_tmax += 1
+
+            # Per-period display validity: independently check whether TMIN and TMAX
+            # have enough records in the core 3 months for this page's season.
+            # season_cdt1 (winter page): north -> DJF core, south -> JJA core
+            # season_cdt2 (summer page): north -> JJA core, south -> DJF core
+            use_djf = (hemisphere == 'north' and season_cdt1) or (hemisphere == 'south' and season_cdt2)
+            if use_djf:
+                valid_tmin_period = count_djf_tmin >= min_days
+                valid_tmax_period = count_djf_tmax >= min_days
+            else:
+                valid_tmin_period = count_jja_tmin >= min_days
+                valid_tmax_period = count_jja_tmax >= min_days
             
             count_actual = season_df['DATE'].nunique()
             count_expected = 0
@@ -1601,7 +1763,9 @@ def period_stats():
                 'count_actual': count_actual,
                 'count_expected': count_expected,
                 'min_tmin': min_tmin_obj, 'max_tmin': max_tmin_obj, 'min_tmax': min_tmax_obj, 'max_tmax': max_tmax_obj,
-                'cnt_tmin': get_thresh_count('TMIN'), 'cnt_tavg': get_thresh_count('TAVG'), 'cnt_tmax': get_thresh_count('TMAX')
+                'avg_tavg': avg_tavg,
+                'cnt_tmin': get_thresh_count('TMIN'), 'cnt_tavg': get_thresh_count('TAVG'), 'cnt_tmax': get_thresh_count('TMAX'),
+                'valid_tmin_period': valid_tmin_period, 'valid_tmax_period': valid_tmax_period
             })
 
         def get_avg_data(lst, used_count):
@@ -1617,7 +1781,70 @@ def period_stats():
 
         return render_template('period_stats.html', station_name=station_name, station_info=station_info, 
                                period_summary=period_summary, period_stats=period_stats_list, source=source, station_id=station_id,
-                               period_mode=period_mode)
+                               period_mode=period_mode, min_days=min_days)
+    except Exception as e:
+        import traceback; traceback.print_exc()
+        return str(e), 500
+
+@app.route('/year_by_year')
+@auth_or_visitor_required
+def year_by_year():
+    try:
+        station_id = request.args.get('station_id')
+        source = request.args.get('source', 'GHCND')
+        start_date = request.args.get('start_date')
+        end_date = request.args.get('end_date')
+
+        station_name = station_id
+        station_info = {'lat': '-', 'lon': '-', 'elev': '-'}
+        st_df = GHCND_DF if source == 'GHCND' else GSOD_DF
+        if st_df is not None:
+            row = st_df[st_df['ID'] == station_id]
+            if not row.empty:
+                station_name = f"{station_id} - {row.iloc[0]['NAME']}"
+                station_info['lat'] = row.iloc[0]['LAT']
+                station_info['lon'] = row.iloc[0]['LON']
+                station_info['elev'] = row.iloc[0]['ELEV']
+
+        df = fetch_and_clean_data(source, station_id, start_date, end_date)
+        if df.empty:
+            return render_template('year_by_year.html', station_name=station_name, station_info=station_info,
+                                   year_stats=[], error_msg=get_translation('messages.station_data_error'))
+
+        def get_val_and_dates(sub_df, method='min'):
+            if sub_df.empty: return {'val': '-', 'dates': []}
+            target_val = sub_df['DATA_VALUE'].min() if method == 'min' else sub_df['DATA_VALUE'].max()
+            matches = sub_df[sub_df['DATA_VALUE'] == target_val]['DATE']
+            return {'val': float(target_val), 'dates': matches.dt.strftime('%Y-%m-%d').tolist()}
+
+        year_stats_list = []
+        df['Year'] = df['DATE'].dt.year
+        unique_years = sorted(df['Year'].unique(), reverse=True)
+
+        for year in unique_years:
+            year_df = df[df['Year'] == year]
+            if year_df.empty: continue
+            count_actual = year_df['DATE'].nunique()
+            count_expected = 366 if calendar.isleap(year) else 365
+            y_tmin_df = year_df[year_df['ELEMENT'] == 'TMIN']
+            y_tmax_df = year_df[year_df['ELEMENT'] == 'TMAX']
+            y_tavg_df = year_df[year_df['ELEMENT'] == 'TAVG']
+            min_tmin_obj = get_val_and_dates(y_tmin_df, 'min')
+            min_tmax_obj = get_val_and_dates(y_tmax_df, 'min')
+            max_tmin_obj = get_val_and_dates(y_tmin_df, 'max')
+            max_tmax_obj = get_val_and_dates(y_tmax_df, 'max')
+            avg_tavg = float(round(y_tavg_df['DATA_VALUE'].mean(), 2)) if not y_tavg_df.empty else '-'
+            year_stats_list.append({
+                'year': year,
+                'count_actual': count_actual,
+                'count_expected': count_expected,
+                'min_tmin': min_tmin_obj, 'min_tmax': min_tmax_obj,
+                'max_tmin': max_tmin_obj, 'max_tmax': max_tmax_obj,
+                'avg_tavg': avg_tavg
+            })
+
+        return render_template('year_by_year.html', station_name=station_name, station_info=station_info,
+                               year_stats=year_stats_list)
     except Exception as e:
         import traceback; traceback.print_exc()
         return str(e), 500

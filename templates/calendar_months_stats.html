@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ station_name }} - {{ t('links.view_year_stats') }}</title>
+    <title>{{ station_name }} - {{ t('links.view_calendar_months_stats') }}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <style>
         .month-section {
@@ -130,7 +130,7 @@
             style="padding: 15px; margin-bottom: 25px; background: #f1f3f5; border: 1px solid #ced4da;">
             <h3 style="margin-top: 0; margin-bottom: 15px; font-size: 1.1em; border-bottom: none;">{{ t('sorting.title')
                 }}</h3>
-            <form action="{{ url_for('year_stats') }}" method="get" class="control-group"
+            <form action="{{ url_for('calendar_months_stats') }}" method="get" class="control-group"
                 style="gap: 15px; align-items: flex-end;">
                 <!-- Preserve existing params -->
                 <input type="hidden" name="station_id" value="{{ request.args.get('station_id', '') }}">

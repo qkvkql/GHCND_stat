@@ -32,6 +32,7 @@
       "period_averages": "Period Averages (Summary)",
       "period_details": "Period Details (By Range)",
       "record_list": "Record List",
+      "single_month_list": "Single Month List",
       "multiple_stations": "Multiple Weather Stations",
       "multiple_stats": "Multiple Stations Statistics (For Stations in Part 4)",
       "averages_suffix": " Averages (Summary)"
@@ -54,6 +55,8 @@
       "loading_data": "Loading data...",
       "type_name_or_id": "Type Name or ID...",
       "custom_all": "Custom / All",
+      "wea6190": "WEA6190",
+      "wea9120": "WEA9120",
       "all_days": "All Days",
       "go": "Go"
     },
@@ -69,9 +72,11 @@
     "links": {
       "ghcnd_stations_list": "GHCND stations list",
       "gsod_stations_list": "GSOD stations list",
-      "view_extreme_temps": "View Daily Extreme Temperatures",
-      "view_period_stats": "View Period Stats",
-      "view_year_stats": "View Year Statistics"
+      "view_extreme_temps": "Daily Extremes",
+      "view_period_stats": "Period Stats",
+      "view_year_stats": "Calendar Months",
+      "view_year_by_year": "Year by Year",
+      "view_calendar_months_stats": "Calendar Months"
     },
     "months": {
       "full_year": "Full Year",
@@ -142,6 +147,8 @@
       "decimal_deg": "Decimal Deg",
       "max_distance_km": "Max Distance (km):",
       "no_limit": "No Limit",
+      "custom": "Custom",
+      "enter_distance": "e.g. 150 (Leave blank for no limit)",
       "country_limit": "Country Limit:",
       "country_example": "e.g. RS (Russia)",
       "latitude_range": "Latitude Range",
@@ -151,7 +158,8 @@
       "max": "Max",
       "wban_limit": "WBAN Limit (GSOD):",
       "limit_to_99999": "Limit to 99999",
-      "include_opposite": "Include Opposite Hemisphere"
+      "include_opposite": "Include Opposite Hemisphere",
+      "area_limit_kml": "Area Limit by KML:"
     },
     "tables": {
       "type": "Type",
@@ -176,6 +184,7 @@
       "min_tmax": "Min TMAX",
       "max_tmin": "Max TMIN",
       "max_tmax": "Max TMAX",
+      "avg_tavg": "Average",
       "id": "ID",
       "date": "Date",
       "element": "Element",
@@ -203,7 +212,21 @@
       "relevant_dates_periods": "Relevant Dates/Periods",
       "total_valid": "Total Valid",
       "total_result_rows": "Total Result Rows:",
-      "timer": "Elapsed Time: {time}s"
+      "timer": "Elapsed Time: {time}s",
+      "yyyy_mm": "YYYY-MM",
+      "min_tmin_c": "Min TMIN(℃)",
+      "avg_tmin_c": "Avg TMIN(℃)",
+      "max_tmin_c": "Max TMIN(℃)",
+      "min_tavg_c": "Min TAVG(℃)",
+      "avg_tavg_c": "Avg TAVG(℃)",
+      "max_tavg_c": "Max TAVG(℃)",
+      "min_tmax_c": "Min TMAX(℃)",
+      "avg_tmax_c": "Avg TMAX(℃)",
+      "max_tmax_c": "Max TMAX(℃)",
+      "days_count_min": "Days(MIN)",
+      "days_count_avg": "Days(AVG)",
+      "days_count_max": "Days(MAX)",
+      "year": "Year"
     },
     "statistics": {
       "average_tmin": "Average TMIN",
@@ -232,7 +255,13 @@
       "min_monthly_avg_tmax": "Minimum value of monthly average TMAX",
       "max_monthly_avg_tmin": "Maximum value of monthly average TMIN",
       "max_monthly_avg_tavg": "Maximum value of monthly average TAVG",
-      "max_monthly_avg_tmax": "Maximum value of monthly average TMAX"
+      "max_monthly_avg_tmax": "Maximum value of monthly average TMAX",
+      "min_single_month_avg_tmin": "Min single month avg TMIN",
+      "min_single_month_avg_tavg": "Min single month avg TAVG",
+      "min_single_month_avg_tmax": "Min single month avg TMAX",
+      "max_single_month_avg_tmin": "Max single month avg TMIN",
+      "max_single_month_avg_tavg": "Max single month avg TAVG",
+      "max_single_month_avg_tmax": "Max single month avg TMAX"
     },
     "messages": {
       "copied_to_clipboard": "Copied to clipboard!",
@@ -280,6 +309,12 @@
     "modal": {
       "select_period": "Select Period Range",
       "close": "Close"
+    },
+    "period_stats": {
+      "min_days_label": "Min valid days in 3-month core:",
+      "min_days_submit": "Update",
+      "valid_tmin": "TMIN ✓",
+      "valid_tmax": "TMAX ✓"
     }
   },
   "zh": {
@@ -315,6 +350,7 @@
       "period_averages": "冬均最低/夏均最高",
       "period_details": "冬/夏",
       "record_list": "样本",
+      "single_month_list": "单月列表",
       "multiple_stations": "多站列表",
       "multiple_stats": "多站单项对比",
       "averages_suffix_zh": "平均"
@@ -337,6 +373,8 @@
       "loading_data": "正在加载数据...",
       "type_name_or_id": "输入站名或站号...",
       "custom_all": "全部",
+      "wea6190": "6190冬均",
+      "wea9120": "9120冬均",
       "all_days": "全部日期",
       "go": "确认"
     },
@@ -354,7 +392,9 @@
       "gsod_stations_list": "GSOD站点列表",
       "view_extreme_temps": "日期极端",
       "view_period_stats": "冬/夏",
-      "view_year_stats": "月份和年"
+      "view_year_stats": "各月统计",
+      "view_year_by_year": "逐年",
+      "view_calendar_months_stats": "各月统计"
     },
     "thresholds": {
       "tmin_threshold": "夜温阈值",
@@ -381,6 +421,8 @@
       "decimal_deg": "十进制值",
       "max_distance_km": "距离限制(km):",
       "no_limit": "无限制",
+      "custom": "自定义",
+      "enter_distance": "如: 150 (留空表示不限制)",
       "country_limit": "国家限制:",
       "country_example": "例如: RS (俄罗斯的国家代码是RS)",
       "latitude_range": "纬度限制",
@@ -390,7 +432,8 @@
       "max": "最大",
       "wban_limit": "WBAN限制(GSOD):",
       "limit_to_99999": "限制为99999",
-      "include_opposite": "包含对侧半球"
+      "include_opposite": "包含对侧半球",
+      "area_limit_kml": "KML范围限制:"
     },
     "tables": {
       "type": "日温类型",
@@ -414,6 +457,7 @@
       "min_tmax": "最低昼温",
       "max_tmin": "最高夜温",
       "max_tmax": "最高气温",
+      "avg_tavg": "平均气温",
       "id": "ID",
       "date": "日期",
       "element": "日温类型",
@@ -440,7 +484,21 @@
       "relevant_dates_periods": "日期/(冬/夏)",
       "total_valid": "总计",
       "total_result_rows": "当前显示结果总数:",
-      "timer": "用时: {time}秒"
+      "timer": "用时: {time}秒",
+      "yyyy_mm": "年-月",
+      "min_tmin_c": "最低夜温(℃)",
+      "avg_tmin_c": "平均夜温(℃)",
+      "max_tmin_c": "最高夜温(℃)",
+      "min_tavg_c": "最低均温(℃)",
+      "avg_tavg_c": "平均均温(℃)",
+      "max_tavg_c": "最高均温(℃)",
+      "min_tmax_c": "最低昼温(℃)",
+      "avg_tmax_c": "平均昼温(℃)",
+      "max_tmax_c": "最高昼温(℃)",
+      "days_count_min": "天数(夜温)",
+      "days_count_avg": "天数(均温)",
+      "days_count_max": "天数(昼温)",
+      "year": "年份"
     },
     "statistics": {
       "average_tmin": "平均夜温",
@@ -469,7 +527,13 @@
       "min_monthly_avg_tmax": "月份: 最低昼温平均",
       "max_monthly_avg_tmin": "月份: 最高夜温平均",
       "max_monthly_avg_tavg": "月份: 最高月均温",
-      "max_monthly_avg_tmax": "月份: 最高昼温平均"
+      "max_monthly_avg_tmax": "月份: 最高昼温平均",
+      "min_single_month_avg_tmin": "单月: 最低夜温平均",
+      "min_single_month_avg_tavg": "单月: 最低月均温",
+      "min_single_month_avg_tmax": "单月: 最低昼温平均",
+      "max_single_month_avg_tmin": "单月: 最高夜温平均",
+      "max_single_month_avg_tavg": "单月: 最高月均温",
+      "max_single_month_avg_tmax": "单月: 最高昼温平均"
     },
     "messages": {
       "copied_to_clipboard": "已复制到剪贴板!",
@@ -561,6 +625,12 @@
     "modal": {
       "select_period": "选择冬/夏",
       "close": "关闭"
+    },
+    "period_stats": {
+      "min_days_label": "核心3个月最少有效天数:",
+      "min_days_submit": "更新",
+      "valid_tmin": "夜温 ✓",
+      "valid_tmax": "昼温 ✓"
     }
   }
 }
